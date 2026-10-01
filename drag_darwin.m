@@ -78,3 +78,13 @@ void performNativeDrag(void* nsWindowPtr, const char* cpath) {
         [view beginDraggingSessionWithItems:@[dragItem] event:event source:s_dragSource];
     });
 }
+
+void setWindowInvisibleToCapture(void* nsWindowPtr) {
+    if (!nsWindowPtr) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSWindow *window = (__bridge NSWindow*)nsWindowPtr;
+        if ([window respondsToSelector:@selector(setSharingType:)]) {
+            [window setSharingType:NSWindowSharingNone];
+        }
+    });
+}

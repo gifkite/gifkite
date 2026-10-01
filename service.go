@@ -373,6 +373,10 @@ func (s *GifService) begin(r NormRect, full bool) {
 	playSound("Tink")
 	s.broadcast()
 
+	setWindowInvisibleToCapture(s.popover.NativeWindow())
+	setWindowInvisibleToCapture(s.controls.NativeWindow())
+	setWindowInvisibleToCapture(s.picker.NativeWindow())
+
 	s.placeControls(s.toDIP(r))
 
 	go func() { // timer for the tray and the controls pill
@@ -427,6 +431,11 @@ func (s *GifService) end(save bool) {
 			}
 		}
 	case phaseRecording, phasePaused:
+		if rec != nil {
+			rec.Pause() // Immediately freeze capture so no trailing stop clicks or transitions are captured!
+		}
+		s.controls.Hide()
+		s.popover.Hide()
 		go s.finish(rec, save)
 	}
 }
@@ -645,9 +654,10 @@ func (s *GifService) toDIP(r NormRect) application.Rect {
 	}
 }
 
-// placeControls places the floating pill strictly outside the recorded region.
-// If there is no space outside the region without overlapping, or if disabled,
-// it hides the controls so they NEVER appear inside the recorded GIF.
+// placeControls positions the floating pill controls.
+// Thanks to NSWindowSharingNone, the controls are completely invisible to screen
+// capture APIs and will NEVER appear inside the recorded GIF even if positioned
+// inside or over the recording rect.
 func (s *GifService) placeControls(d application.Rect) {
 	s.mu.Lock()
 	show := s.settings.ShowControls
@@ -671,12 +681,13 @@ func (s *GifService) placeControls(d application.Rect) {
 	case d.Y-gap-controlsH >= wa.Y:
 		y = d.Y - gap - controlsH
 	default:
-		// No safe space outside the region without overlapping!
-		// Hide controls completely so they NEVER contaminate the recording.
-		s.controls.Hide()
-		return
+		// When the region covers most of the vertical space, position at the bottom
+		// of the work area. With NSWindowSharingNone, the user can still conveniently
+		// see the timer and stop button, but it will never be recorded into the GIF!
+		y = wa.Y + wa.Height - controlsH - 16
 	}
 	s.controls.SetBounds(application.Rect{X: x, Y: y, Width: controlsW, Height: controlsH})
+	setWindowInvisibleToCapture(s.controls.NativeWindow())
 	s.controls.Show()
 }
 

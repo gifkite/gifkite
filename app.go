@@ -103,6 +103,10 @@ func runApp() {
 		},
 	})
 
+	setWindowInvisibleToCapture(svc.popover.NativeWindow())
+	setWindowInvisibleToCapture(svc.picker.NativeWindow())
+	setWindowInvisibleToCapture(svc.controls.NativeWindow())
+
 	tray := app.SystemTray.New()
 	svc.tray = tray
 	if runtime.GOOS == "darwin" {

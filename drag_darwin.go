@@ -22,3 +22,9 @@ func startNativeFileDrag(window unsafe.Pointer, path string) {
 	defer C.free(unsafe.Pointer(cpath))
 	C.performNativeDrag(window, cpath)
 }
+
+func setWindowInvisibleToCapture(window unsafe.Pointer) {
+	if window != nil {
+		C.setWindowInvisibleToCapture(window)
+	}
+}
