@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Release (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Run unit tests
+        run: go test -v .
+
+      - name: Build Gifkite.app bundle
+        run: ./build-app.sh
+
+      - name: Package DMG & ZIP
+        run: |
+          # Create a drag-and-drop installer disk image
+          mkdir -p dmg_root
+          cp -R Gifkite.app dmg_root/
+          ln -s /Applications dmg_root/Applications
+          hdiutil create -volname "Gifkite" -srcfolder dmg_root -ov -format UDZO Gifkite-macOS.dmg
+          rm -rf dmg_root
+
+          # Also package standalone ZIP
+          ditto -c -k --sequesterRsrc --keepParent Gifkite.app Gifkite-macOS.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Gifkite-macOS.dmg
+            Gifkite-macOS.zip
+          generate_release_notes: true
