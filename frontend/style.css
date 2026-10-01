@@ -1,0 +1,38 @@
+/* Gifkite: a quiet native utility. The one loud thing is the recording
+   red, and the viewfinder corner brackets that mark "this gets captured". */
+:root {
+  --paper: #f3f4f6;
+  --card: #ffffff;
+  --ink: #17181b;
+  --muted: #6a6e76;
+  --line: rgba(20, 22, 26, 0.09);
+  --hover: rgba(20, 22, 26, 0.05);
+  --rec: #e5484d;
+  --rec-ink: #ffffff;
+  --ok: #2f9e6a;
+  --radius-lg: 12px;
+  --radius-sm: 7px;
+  font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c1d20;
+    --card: #26272b;
+    --ink: #ededef;
+    --muted: #9a9ea6;
+    --line: rgba(255, 255, 255, 0.08);
+    --hover: rgba(255, 255, 255, 0.06);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: default; }
+button {
+  font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: default;
+}
+button:focus-visible, select:focus-visible { outline: 2px solid var(--rec); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

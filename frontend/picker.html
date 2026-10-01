@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/style.css">
+<style>
+  html, body { background: #000; overflow: hidden; cursor: crosshair; }
+  #shot { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: fill; pointer-events: none; }
+  #shade { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.42); }
+  #sel {
+    position: fixed; display: none;
+    /* the shade outside the selection is one enormous shadow */
+    box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.42);
+    outline: 1px solid rgba(255, 255, 255, 0.55);
+    z-index: 10;
+  }
+  #sel i { position: absolute; width: 26px; height: 26px; border: 4px solid var(--rec); }
+  #sel i:nth-child(1) { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
+  #sel i:nth-child(2) { top: -4px; right: -4px; border-left: 0; border-bottom: 0; }
+  #sel i:nth-child(3) { bottom: -4px; left: -4px; border-right: 0; border-top: 0; }
+  #sel i:nth-child(4) { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
+  #dims {
+    position: absolute; left: 0; top: -28px; padding: 3px 8px; border-radius: 6px;
+    background: var(--rec); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  #dims.below { top: auto; bottom: -28px; }
+
+  /* Window snapping highlight */
+  #win-hl {
+    position: fixed; display: none; pointer-events: none;
+    border: 2.5px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 8px 30px rgba(0, 0, 0, 0.4);
+    z-index: 6;
+  }
+  #win-badge {
+    position: absolute; top: -32px; left: 6px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 7px;
+    background: rgba(15, 23, 42, 0.94);
+    color: #fff; font-size: 12px; font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    white-space: nowrap; max-width: 500px; overflow: hidden; text-overflow: ellipsis;
+    backdrop-filter: blur(10px);
+  }
+  #win-badge.below { top: auto; bottom: -32px; }
+  #win-app { font-weight: 700; color: #60a5fa; }
+  #win-title { opacity: 0.85; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+  #win-dims { opacity: 0.6; font-size: 11px; margin-left: 4px; }
+
+  .guide { position: fixed; background: rgba(255, 255, 255, 0.35); pointer-events: none; }
+  #gx { left: 0; right: 0; height: 1px; }
+  #gy { top: 0; bottom: 0; width: 1px; }
+  #help {
+    position: fixed; top: 28px; left: 50%; transform: translateX(-50%);
+    padding: 8px 16px; border-radius: 9px; background: rgba(20, 22, 26, 0.88); color: #fff;
+    font-size: 13px; backdrop-filter: blur(8px); z-index: 20;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  #help kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.16); }
+  body.dragging #help, body.dragging .guide, body.dragging #win-hl { display: none !important; }
+</style>
+</head>
+<body>
+<img id="shot" alt="">
+<div id="shade"></div>
+<div class="guide" id="gx"></div>
+<div class="guide" id="gy"></div>
+<div id="win-hl">
+  <div id="win-badge">
+    <span id="win-app"></span>
+    <span id="win-title"></span>
+    <span id="win-dims" class="num"></span>
+  </div>
+</div>
+<div id="sel"><i></i><i></i><i></i><i></i><span id="dims" class="num"></span></div>
+<div id="help">Click a window • Drag to select • <kbd>Space</kbd> or Release to record • <kbd>⌘A</kbd> Full Screen • <kbd>Esc</kbd> Cancel</div>
+<script type="module">
+import { Call, Events } from "/wails/runtime.js";
+const call = (m, ...a) => Call.ByName(`main.GifService.${m}`, ...a);
+const shot = document.getElementById("shot"), shade = document.getElementById("shade");
+const sel = document.getElementById("sel"), dims = document.getElementById("dims");
+const gx = document.getElementById("gx"), gy = document.getElementById("gy");
+const winHl = document.getElementById("win-hl");
+const winBadge = document.getElementById("win-badge");
+const winApp = document.getElementById("win-app");
+const winTitle = document.getElementById("win-title");
+const winDims = document.getElementById("win-dims");
+
+let start = null, rect = null;
+let windows = [];
+let hoveredWin = null;
+let isRealDrag = false;
+
+function reset() {
+  start = rect = null;
+  hoveredWin = null;
+  isRealDrag = false;
+  sel.style.display = "none";
+  winHl.style.display = "none";
+  shade.style.display = "block";
+  document.body.classList.remove("dragging");
+}
+
+function finish(r) {
+  const vw = innerWidth, vh = innerHeight;
+  reset();
+  if (!r || r.w < 8 || r.h < 8) return;
+  shot.removeAttribute("src");
+  call("PickerDone", { x: r.x / vw, y: r.y / vh, w: r.w / vw, h: r.h / vh });
+}
+
+Events.On("picker:open", (e) => {
+  reset();
+  const data = e.data;
+  if (typeof data === "object" && data !== null) {
+    shot.src = `/frozen.jpg?t=${data.time}`;
+    windows = data.windows || [];
+  } else {
+    shot.src = `/frozen.jpg?t=${data}`;
+    windows = [];
+  }
+});
+
+addEventListener("mousemove", (e) => {
+  gx.style.top = `${e.clientY}px`;
+  gy.style.left = `${e.clientX}px`;
+
+  if (!start) {
+    // Window hover check
+    hoveredWin = null;
+    for (const w of windows) {
+      if (e.clientX >= w.x && e.clientX <= w.x + w.w &&
+          e.clientY >= w.y && e.clientY <= w.y + w.h) {
+        hoveredWin = w;
+        break;
+      }
+    }
+    if (hoveredWin) {
+      winHl.style.display = "block";
+      winHl.style.left = `${hoveredWin.x}px`;
+      winHl.style.top = `${hoveredWin.y}px`;
+      winHl.style.width = `${hoveredWin.w}px`;
+      winHl.style.height = `${hoveredWin.h}px`;
+      winApp.textContent = hoveredWin.appName || "Window";
+      winTitle.textContent = hoveredWin.title ? `— ${hoveredWin.title}` : "";
+      winDims.textContent = `${hoveredWin.w} × ${hoveredWin.h}`;
+      winBadge.classList.toggle("below", hoveredWin.y < 36);
+    } else {
+      winHl.style.display = "none";
+    }
+    return;
+  }
+
+  const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+  if (dist > 5) {
+    isRealDrag = true;
+    document.body.classList.add("dragging");
+    winHl.style.display = "none";
+
+    const x = Math.min(start.x, e.clientX), y = Math.min(start.y, e.clientY);
+    const w = Math.abs(e.clientX - start.x), h = Math.abs(e.clientY - start.y);
+    rect = { x, y, w, h };
+    Object.assign(sel.style, { display: "block", left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+    shade.style.display = "none"; // the selection's shadow takes over
+    dims.textContent = `${Math.round(w * devicePixelRatio)} × ${Math.round(h * devicePixelRatio)}`;
+    dims.classList.toggle("below", y < 34);
+  }
+});
+
+addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  start = { x: e.clientX, y: e.clientY };
+  isRealDrag = false;
+});
+
+addEventListener("mouseup", () => {
+  if (!start) return;
+  if (isRealDrag && rect) {
+    finish(rect);
+  } else if (hoveredWin) {
+    // Clicked a window to snap!
+    finish({ x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h });
+  } else {
+    reset();
+  }
+});
+
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    reset();
+    shot.removeAttribute("src");
+    call("PickerCancel");
+  } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+    e.preventDefault();
+    finish({ x: 0, y: 0, w: innerWidth, h: innerHeight });
+  } else if (e.code === "Space" || e.key === "Enter") {
+    e.preventDefault();
+    if (rect && rect.w >= 8 && rect.h >= 8) {
+      finish(rect);
+    } else if (hoveredWin) {
+      finish({ x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h });
+    } else {
+      finish({ x: 0, y: 0, w: innerWidth, h: innerHeight });
+    }
+  }
+});
+</script>
+</body>
+</html>

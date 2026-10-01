@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/style.css">
+<style>
+  html, body { background: transparent; overflow: hidden; }
+  .pill {
+    --wails-draggable: drag; /* drag the pill out of the way if it covers something */
+    position: fixed; inset: 4px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px;
+    border-radius: 22px; background: rgba(24, 25, 29, 0.92); color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); backdrop-filter: blur(12px);
+  }
+  .grip { display: flex; flex-direction: column; gap: 2.5px; opacity: 0.4; padding-right: 2px; cursor: grab; }
+  .grip span { width: 12px; height: 2px; background: #ffffff; border-radius: 1px; }
+  .pill:hover .grip { opacity: 0.75; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; transition: background 0.2s; }
+  .dot.paused { background: #f59e0b; animation: none; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  .t { flex: 1; font-size: 14.5px; font-weight: 600; font-family: system-ui, -apple-system, sans-serif; min-width: 36px; }
+  button { --wails-draggable: no-drag; }
+  .pause {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    color: rgba(255, 255, 255, 0.85); cursor: pointer;
+    background: rgba(255, 255, 255, 0.1); transition: all 0.12s;
+  }
+  .pause:hover { color: #fff; background: rgba(255, 255, 255, 0.2); }
+  .pause svg { fill: currentColor; }
+  .stop { display: inline-flex; align-items: center; gap: 6px; background: var(--rec); color: #fff; font-weight: 600; padding: 6px 11px; border-radius: 16px; cursor: pointer; transition: opacity 0.12s; font-size: 13px; }
+  .stop:hover { opacity: 0.9; }
+  .stop i { width: 8px; height: 8px; background: #fff; border-radius: 1.5px; }
+  .x { width: 26px; height: 26px; border-radius: 50%; color: rgba(255, 255, 255, 0.6); font-size: 15px; cursor: pointer; }
+  .x:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+</style>
+</head>
+<body>
+<div class="pill">
+  <div class="grip" title="Drag to move" aria-hidden="true">
+    <span></span><span></span>
+  </div>
+  <span class="dot" id="dot"></span>
+  <span class="t num" id="t">0:00</span>
+  <button class="pause" id="pause" title="Pause recording" aria-label="Pause recording">
+    <svg id="pause-icon" viewBox="0 0 16 16" width="11" height="11">
+      <rect x="2.5" y="2" width="3.5" height="12" rx="1"/>
+      <rect x="10" y="2" width="3.5" height="12" rx="1"/>
+    </svg>
+  </button>
+  <button class="stop" id="stop"><i></i>Stop</button>
+  <button class="x" id="discard" title="Discard recording" aria-label="Discard recording">✕</button>
+</div>
+<script type="module">
+import { Call, Events } from "/wails/runtime.js";
+const call = (m, ...a) => Call.ByName(`main.GifService.${m}`, ...a);
+const t = document.getElementById("t");
+const dot = document.getElementById("dot");
+const pauseBtn = document.getElementById("pause");
+const pauseIcon = document.getElementById("pause-icon");
+
+function setPausedState(isPaused) {
+  if (isPaused) {
+    dot.classList.add("paused");
+    pauseBtn.title = "Resume recording";
+    pauseIcon.innerHTML = '<polygon points="4,2 14,8 4,14"/>';
+  } else {
+    dot.classList.remove("paused");
+    pauseBtn.title = "Pause recording";
+    pauseIcon.innerHTML = '<rect x="2.5" y="2" width="3.5" height="12" rx="1"/><rect x="10" y="2" width="3.5" height="12" rx="1"/>';
+  }
+}
+
+Events.On("tick", (e) => {
+  const s = Math.floor(e.data);
+  t.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+});
+
+Events.On("state", (e) => {
+  if (e.data.phase === "recording" && e.data.elapsed < 1) t.textContent = "0:00";
+  setPausedState(e.data.phase === "paused");
+});
+
+pauseBtn.onclick = () => call("TogglePause");
+document.getElementById("stop").onclick = () => call("Stop");
+document.getElementById("discard").onclick = () => call("Discard");
+</script>
+</body>
+</html>
