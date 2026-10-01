@@ -385,6 +385,7 @@ function renderSettings(st) {
   if ($("showCursor")) $("showCursor").checked = st.showCursor !== false;
   if ($("cursorHighlight")) $("cursorHighlight").checked = st.cursorHighlight !== false;
   if ($("clickRipples")) $("clickRipples").checked = st.clickRipples !== false;
+  if ($("showControls")) $("showControls").checked = st.showControls !== false;
   $("folder").textContent = st.outputDir;
 }
 
@@ -410,6 +411,7 @@ if ($("trim")) $("trim").onchange = (e) => saveSettings({ trim: e.target.checked
 if ($("showCursor")) $("showCursor").onchange = (e) => saveSettings({ showCursor: e.target.checked });
 if ($("cursorHighlight")) $("cursorHighlight").onchange = (e) => saveSettings({ cursorHighlight: e.target.checked });
 if ($("clickRipples")) $("clickRipples").onchange = (e) => saveSettings({ clickRipples: e.target.checked });
+if ($("showControls")) $("showControls").onchange = (e) => saveSettings({ showControls: e.target.checked });
 $("choose").onclick = async () => {
   await call("ChooseFolder");
   render(await call("GetState"));

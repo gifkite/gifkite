@@ -153,10 +153,10 @@
     <div class="field">
       <span>Dithering</span>
       <div class="seg" data-key="dither">
-        <button data-v="bayer">Bayer</button><button data-v="floyd">Floyd</button><button data-v="none">None</button>
+        <button data-v="none">None (Crisp)</button><button data-v="bayer">Bayer</button><button data-v="floyd">Floyd</button>
       </div>
     </div>
-    <p class="note">Dithering smooths color gradients and shadows (Bayer is fastest).</p>
+    <p class="note">"None (Crisp)" keeps UI text, icons & solid colors pixel-perfect with zero blur.</p>
     <div class="field">
       <span>Stop automatically after</span>
       <select id="max">
@@ -186,6 +186,10 @@
     <label class="field toggle">
       <span>Animated click ripples on mouse click</span>
       <input type="checkbox" id="clickRipples"><i></i>
+    </label>
+    <label class="field toggle">
+      <span>Show floating stop button pill during recording</span>
+      <input type="checkbox" id="showControls"><i></i>
     </label>
     <div class="field col">
       <span>Save recordings to</span>

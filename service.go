@@ -374,7 +374,6 @@ func (s *GifService) begin(r NormRect, full bool) {
 	s.broadcast()
 
 	s.placeControls(s.toDIP(r))
-	s.controls.Show()
 
 	go func() { // timer for the tray and the controls pill
 		t := time.NewTicker(250 * time.Millisecond)
@@ -646,19 +645,25 @@ func (s *GifService) toDIP(r NormRect) application.Rect {
 	}
 }
 
-// placeControls puts the pill centred under the region, or above it, or
-// (for regions that fill the screen) inside the bottom edge.
+// placeControls places the floating pill strictly outside the recorded region.
+// If there is no space outside the region without overlapping, or if disabled,
+// it hides the controls so they NEVER appear inside the recorded GIF.
 func (s *GifService) placeControls(d application.Rect) {
 	s.mu.Lock()
+	show := s.settings.ShowControls
 	scr := s.activeScreen
 	s.mu.Unlock()
+	if !show {
+		s.controls.Hide()
+		return
+	}
 	if scr == nil {
 		scr = s.app.Screen.GetPrimary()
 	}
 	wa := scr.WorkArea
 	x := d.X + d.Width/2 - controlsW/2
 	x = max(wa.X+8, min(x, wa.X+wa.Width-controlsW-8))
-	gap := 12
+	gap := 16
 	var y int
 	switch {
 	case d.Y+d.Height+gap+controlsH <= wa.Y+wa.Height:
@@ -666,9 +671,13 @@ func (s *GifService) placeControls(d application.Rect) {
 	case d.Y-gap-controlsH >= wa.Y:
 		y = d.Y - gap - controlsH
 	default:
-		y = wa.Y + wa.Height - controlsH - 16
+		// No safe space outside the region without overlapping!
+		// Hide controls completely so they NEVER contaminate the recording.
+		s.controls.Hide()
+		return
 	}
 	s.controls.SetBounds(application.Rect{X: x, Y: y, Width: controlsW, Height: controlsH})
+	s.controls.Show()
 }
 
 func (s *GifService) Quit() { s.app.Quit() }

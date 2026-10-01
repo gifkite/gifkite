@@ -17,6 +17,7 @@ type Settings struct {
 	ShowCursor      bool    `json:"showCursor"`
 	CursorHighlight bool    `json:"cursorHighlight"`
 	ClickRipples    bool    `json:"clickRipples"`
+	ShowControls    bool    `json:"showControls"`
 }
 
 func defaultSettings() Settings {
@@ -26,11 +27,12 @@ func defaultSettings() Settings {
 		MaxSeconds:      60,
 		Countdown:       true,
 		OutputDir:       defaultOutputDir(),
-		Dither:          "bayer",
+		Dither:          "none",
 		Trim:            true,
 		ShowCursor:      true,
 		CursorHighlight: true,
 		ClickRipples:    true,
+		ShowControls:    true,
 	}
 }
 

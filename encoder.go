@@ -135,8 +135,13 @@ func indexFrameBayer(img *image.RGBA, q *Quantizer, dst []uint8, W, H int) {
 		row := dst[y*W : (y+1)*W]
 		by := y & 3
 		for x := 0; x < W; x++ {
-			bias := (bayer4x4[by][x&3] - 8) * 2
 			p := src[x*4:]
+			// Keep exact matches intact with zero dither noise
+			if idx, ok := q.Exact(p[0], p[1], p[2]); ok {
+				row[x] = idx
+				continue
+			}
+			bias := (bayer4x4[by][x&3] - 8) * 2
 			r := clamp8(int(p[0]) + bias)
 			g := clamp8(int(p[1]) + bias)
 			b := clamp8(int(p[2]) + bias)
@@ -155,6 +160,10 @@ func indexFrameFloyd(img *image.RGBA, q *Quantizer, dst []uint8, W, H int) {
 
 		for x := 0; x < W; x++ {
 			p := src[x*4:]
+			if idx, ok := q.Exact(p[0], p[1], p[2]); ok {
+				row[x] = idx
+				continue
+			}
 			e := errRow0[x+1]
 			r := clamp8(int(p[0]) + e[0]/16)
 			g := clamp8(int(p[1]) + e[1]/16)
