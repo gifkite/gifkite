@@ -20,7 +20,6 @@ import (
 const (
 	controlsW = 278
 	controlsH = 52
-	framePad  = 6 // border thickness drawn outside the region, in DIP
 )
 
 // Phases, in order. The frontend renders from these.
@@ -65,9 +64,9 @@ type ReviewInfo struct {
 // GifService is bound to the frontend: its exported methods are callable
 // from JS as main.GifService.<Method>.
 type GifService struct {
-	app                              *application.App
-	tray                             *application.SystemTray
-	popover, picker, frame, controls *application.WebviewWindow
+	app                       *application.App
+	tray                      *application.SystemTray
+	popover, picker, controls *application.WebviewWindow
 
 	mu            sync.Mutex
 	phase         string
@@ -190,7 +189,6 @@ func (s *GifService) fail(err error) {
 	s.phase = phaseIdle
 	s.lastErr = err.Error()
 	s.mu.Unlock()
-	s.frame.Hide()
 	s.controls.Hide()
 	s.picker.Hide()
 	s.tray.SetLabel("")
@@ -340,20 +338,12 @@ func (s *GifService) begin(r NormRect, full bool) {
 	cfg := s.settings
 	s.mu.Unlock()
 
-	// Full-screen recordings get no overlays: they'd end up in the GIF.
-	if !full {
-		d := s.toDIP(r)
-		s.frame.SetBounds(application.Rect{X: d.X - framePad, Y: d.Y - framePad, Width: d.Width + 2*framePad, Height: d.Height + 2*framePad})
-		s.frame.Show()
-	}
-
 	if cfg.Countdown {
 		for n := 3; n > 0; n-- {
 			s.app.Event.Emit("countdown", n)
 			s.tray.SetLabel(fmt.Sprintf("%d…", n))
 			select {
 			case <-abort:
-				s.frame.Hide()
 				s.tray.SetLabel("")
 				s.transition(phaseCountdown, phaseIdle)
 				return
@@ -373,7 +363,6 @@ func (s *GifService) begin(r NormRect, full bool) {
 	s.mu.Lock()
 	if s.phase != phaseCountdown { // stopped during the countdown
 		s.mu.Unlock()
-		s.frame.Hide()
 		return
 	}
 	s.rec = rec
@@ -452,7 +441,6 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 	s.rec = nil
 	s.mu.Unlock()
 
-	s.frame.Hide()
 	s.controls.Hide()
 	frames, end, err := rec.Stop()
 	if !save {
@@ -670,7 +658,7 @@ func (s *GifService) placeControls(d application.Rect) {
 	wa := scr.WorkArea
 	x := d.X + d.Width/2 - controlsW/2
 	x = max(wa.X+8, min(x, wa.X+wa.Width-controlsW-8))
-	gap := framePad + 10
+	gap := 12
 	var y int
 	switch {
 	case d.Y+d.Height+gap+controlsH <= wa.Y+wa.Height:

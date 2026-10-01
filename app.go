@@ -84,42 +84,19 @@ func runApp() {
 		},
 	})
 
-	// Border drawn just outside the recorded region. Click-through, and
-	// excluded from screen capture where the OS supports it.
-	svc.frame = app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:                     "frame",
-		URL:                      "/frame.html",
-		Frameless:                true,
-		AlwaysOnTop:              true,
-		Hidden:                   true,
-		DisableResize:            true,
-		IgnoreMouseEvents:        true,
-		ContentProtectionEnabled: true,
-		BackgroundType:           application.BackgroundTypeTransparent,
-		BackgroundColour:         application.NewRGBA(0, 0, 0, 0),
-		Windows:                  application.WindowsWindow{HiddenOnTaskbar: true},
-		Mac: application.MacWindow{
-			WindowLevel:        application.MacWindowLevelStatus,
-			CollectionBehavior: application.MacWindowCollectionBehaviorCanJoinAllSpaces | application.MacWindowCollectionBehaviorFullScreenAuxiliary,
-			DisableShadow:      true,
-		},
-	})
-
 	// Floating timer + stop button shown next to the region while recording.
 	svc.controls = app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:                     "controls",
-		URL:                      "/controls.html",
-		Width:                    controlsW,
-		Height:                   controlsH,
-		Frameless:                true,
-		AlwaysOnTop:              true,
-		Hidden:                   true,
-		DisableResize:            true,
-		ContentProtectionEnabled: true,
-		BackgroundType:           application.BackgroundTypeTransparent,
-		BackgroundColour:         application.NewRGBA(0, 0, 0, 0),
-		Windows:                  application.WindowsWindow{HiddenOnTaskbar: true},
+		Name:          "controls",
+		URL:           "/controls.html",
+		Width:         controlsW,
+		Height:        controlsH,
+		Frameless:     true,
+		AlwaysOnTop:   true,
+		Hidden:        true,
+		DisableResize: true,
+		Windows:       application.WindowsWindow{HiddenOnTaskbar: true},
 		Mac: application.MacWindow{
+			Backdrop:            application.MacBackdropTransparent,
 			WindowLevel:        application.MacWindowLevelStatus,
 			CollectionBehavior: application.MacWindowCollectionBehaviorCanJoinAllSpaces | application.MacWindowCollectionBehaviorFullScreenAuxiliary,
 			DisableShadow:      true,
