@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Gifkite</title>
+<link rel="icon" type="image/svg+xml" href="/assets/gifkite-mark.svg">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/popover.css">
 <script type="module" src="/popover.js"></script>
@@ -120,8 +121,8 @@
     </header>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" hidden>
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 11V4h7M21 4h7v7M28 21v7h-7M11 28H4v-7"/></svg>
-      <p>Your GIFs show up here. Choose Region, drag over what you want to record, and press Stop when you're done.</p>
+      <img src="/assets/gifkite-mark.svg" class="empty-mark" alt="Gifkite" width="48" height="48">
+      <p>Your GIFs show up here. Choose Window or Region, capture what you want, and drop it anywhere.</p>
     </div>
   </section>
 
@@ -212,6 +213,11 @@
     <div class="field">
       <span>Pause / Resume</span>
       <kbd>⌥⌘P</kbd>
+    </div>
+
+    <div class="settings-branding">
+      <img src="/assets/gifkite-logo-dark.svg" alt="Gifkite" class="settings-logo" width="120">
+      <p class="settings-version">v1.0.0 • Pro Screen-to-GIF for macOS</p>
     </div>
   </section>
 

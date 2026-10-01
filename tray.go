@@ -39,8 +39,11 @@ type trayApp struct {
 func cmdTray() { systray.Run((&trayApp{}).onReady, nil) }
 
 func (t *trayApp) onReady() {
-	systray.SetIcon(trayIcon())
-	systray.SetTitle("GIF")
+	if runtime.GOOS == "darwin" {
+		systray.SetTemplateIcon(trayIconTemplate(), trayIconTemplate())
+	} else {
+		systray.SetIcon(trayIcon())
+	}
 	systray.SetTooltip("Gifkite: Ctrl+Shift+5 to start/stop")
 
 	t.mScreen = systray.AddMenuItem("Record screen", "")

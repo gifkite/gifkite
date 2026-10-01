@@ -10,7 +10,9 @@
   <meta property="og:description" content="Capture app windows, custom regions, and full screens into smooth, lightweight GIFs.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://gifkite.github.io/gifkite/">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff3b5c' d='M16 2 L28 14 L16 30 L4 14 Z'/%3E%3Ccircle cx='16' cy='15' r='5' fill='%23fff'/%3E%3C/svg%3E">
+  <meta property="og:image" content="https://gifkite.github.io/gifkite/assets/gifkite-logo-dark.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/gifkite-mark.svg">
+  <link rel="apple-touch-icon" href="assets/gifkite-app-icon.svg">
   <link rel="stylesheet" href="style.css">
   <script defer src="app.js"></script>
 </head>
@@ -27,11 +29,7 @@
   <header class="site-nav">
     <div class="nav-container">
       <a href="#" class="logo-group" id="nav-logo">
-        <div class="logo-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <polygon points="12 2 22 12 12 22 2 12"/>
-          </svg>
-        </div>
+        <img src="assets/gifkite-mark.svg" alt="Gifkite logo" class="nav-logo-mark" width="32" height="32">
         <span>Gifkite</span>
       </a>
 
@@ -56,8 +54,12 @@
 
   <!-- Hero Section -->
   <section class="hero" id="hero-section">
+    <div class="hero-icon-container">
+      <img src="assets/gifkite-app-icon.svg" alt="Gifkite App Icon" class="hero-app-icon" width="84" height="84">
+    </div>
+
     <div class="badge-pill">
-      <span class="beacon-dot"></span>
+      <img src="assets/gifkite-menubar-template-small.svg" class="badge-menubar-icon" alt="" width="14" height="14">
       <span>Gifkite for macOS</span>
     </div>
 
@@ -106,10 +108,7 @@
           <span class="dot-green"></span>
         </div>
         <div class="window-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="2" width="20" height="20" rx="4"/>
-            <circle cx="12" cy="12" r="3" fill="#ff3b5c"/>
-          </svg>
+          <img src="assets/gifkite-menubar-template-small.svg" width="14" height="14" alt="" class="window-title-icon">
           <span>Gifkite Viewfinder Simulation — Drag the frame below</span>
         </div>
         <div style="width: 50px;"></div>
@@ -217,10 +216,7 @@
       <!-- Feature 6 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
+          <img src="assets/gifkite-menubar-template.svg" width="24" height="24" alt="Menu Bar Icon" class="feature-menubar-icon">
         </div>
         <h3>Menu Bar First &amp; CLI Headless</h3>
         <p>Lives quietly in your macOS menu bar with zero Dock clutter. Or trigger automated recordings from the terminal and CI scripts with <code>gifkite record</code>.</p>
@@ -378,7 +374,8 @@
   <footer class="site-footer">
     <div class="footer-content">
       <div class="footer-brand">
-        <strong>Gifkite</strong> — Screen-to-GIF recorder for macOS.
+        <img src="assets/gifkite-mark.svg" alt="Gifkite" width="24" height="24" class="footer-mark">
+        <span><strong>Gifkite</strong> — Screen-to-GIF recorder for macOS.</span>
       </div>
       <div class="footer-links">
         <a href="https://github.com/gifkite/gifkite" target="_blank" rel="noopener noreferrer">GitHub</a>

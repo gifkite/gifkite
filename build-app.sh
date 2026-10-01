@@ -13,6 +13,9 @@ mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
 
 cp gifkite "$APP/Contents/MacOS/gifkite"
+if [ -f "assets/AppIcon.icns" ]; then
+    cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+fi
 
 cat << 'EOF' > "$APP/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,6 +24,8 @@ cat << 'EOF' > "$APP/Contents/Info.plist"
 <dict>
     <key>CFBundleExecutable</key>
     <string>gifkite</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.gifkite.app</string>
     <key>CFBundleInfoDictionaryVersion</key>

@@ -1,7 +1,23 @@
-# Gifkite
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/gifkite-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/gifkite-logo-light.svg">
+    <img src="docs/assets/gifkite-logo-dark.svg" alt="Gifkite" width="380">
+  </picture>
+</p>
 
-[![CI](https://github.com/gifkite/gifkite/actions/workflows/ci.yml/badge.svg)](https://github.com/gifkite/gifkite/actions/workflows/ci.yml)
-[![Pages](https://github.com/gifkite/gifkite/actions/workflows/pages.yml/badge.svg)](https://gifkite.github.io/gifkite/)
+<p align="center">
+  <strong>The Pro Screen-to-GIF Recorder for macOS</strong><br>
+  Crafted for clarity, speed, and beautiful pixel-perfect loops.
+</p>
+
+<p align="center">
+  <a href="https://github.com/gifkite/gifkite/actions/workflows/ci.yml"><img src="https://github.com/gifkite/gifkite/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://gifkite.github.io/gifkite/"><img src="https://github.com/gifkite/gifkite/actions/workflows/pages.yml/badge.svg" alt="Pages"></a>
+  <a href="https://github.com/gifkite/gifkite/releases"><img src="https://img.shields.io/github/v/release/gifkite/gifkite?color=coral&label=Download%20macOS" alt="Release"></a>
+</p>
+
+---
 
 A Gifox-style menu bar app for recording your screen to GIF, written in Go with Wails v3.
 
