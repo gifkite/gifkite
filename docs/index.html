@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gifkite — Pro Screen-to-GIF Recorder for macOS</title>
+  <meta name="description" content="Gifkite is a fast, lightweight Gifox-style menu bar screen-to-GIF recorder for macOS with Bayer dithering, cursor spotlighting, trim editor, and drag-and-drop sharing.">
+  <meta name="keywords" content="Gifkite, screen recorder, GIF recorder, macOS menu bar app, Gifox alternative, dithering, screen capture">
+  <meta property="og:title" content="Gifkite — Pro Screen-to-GIF Recorder for macOS">
+  <meta property="og:description" content="Capture app windows, custom regions, and full screens into smooth, lightweight GIFs.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gifkite.github.io/gifkite/">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff3b5c' d='M16 2 L28 14 L16 30 L4 14 Z'/%3E%3Ccircle cx='16' cy='15' r='5' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+
+  <!-- Ambient Light Orbs -->
+  <div class="bg-glow-wrapper" aria-hidden="true">
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+    <div class="glow-orb-3"></div>
+  </div>
+
+  <!-- Sticky Navbar -->
+  <header class="site-nav">
+    <div class="nav-container">
+      <a href="#" class="logo-group" id="nav-logo">
+        <div class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <polygon points="12 2 22 12 12 22 2 12"/>
+          </svg>
+        </div>
+        <span>Gifkite</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#playground">Interactive Demo</a></li>
+          <li><a href="#shortcuts">Shortcuts</a></li>
+          <li><a href="#docs">Documentation</a></li>
+          <li>
+            <a href="https://github.com/gifkite/gifkite" target="_blank" rel="noopener noreferrer" class="nav-btn-gh" id="btn-gh-nav">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span>GitHub</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero-section">
+    <div class="badge-pill">
+      <span class="beacon-dot"></span>
+      <span>Gifkite for macOS</span>
+    </div>
+
+    <h1>
+      The Pro Screen-to-GIF Recorder<br>
+      <span class="gradient-text">Crafted for Clarity & Speed.</span>
+    </h1>
+
+    <p class="lead">
+      Record single application windows, multi-monitor regions, or full screens with Bayer 4×4 spatial dithering, high-visibility cursor tracking, and instant drag-and-drop sharing.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://github.com/gifkite/gifkite/releases" class="btn-primary" id="hero-download-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download for macOS</span>
+      </a>
+
+      <a href="#playground" class="btn-secondary" id="hero-try-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Explore Live Demo</span>
+      </a>
+    </div>
+
+    <div class="install-bar" id="install-bar">
+      <span>$ git clone https://github.com/gifkite/gifkite.git &amp;&amp; ./build-app.sh</span>
+      <button data-copy="git clone https://github.com/gifkite/gifkite.git && cd gifkite && ./build-app.sh" title="Copy command" aria-label="Copy clone command">
+        Copy
+      </button>
+    </div>
+  </section>
+
+  <!-- Hero Window Preview & Viewfinder Demo -->
+  <div class="hero-preview">
+    <div class="mac-window">
+      <div class="window-header">
+        <div class="window-dots">
+          <span class="dot-red"></span>
+          <span class="dot-yellow"></span>
+          <span class="dot-green"></span>
+        </div>
+        <div class="window-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="4"/>
+            <circle cx="12" cy="12" r="3" fill="#ff3b5c"/>
+          </svg>
+          <span>Gifkite Viewfinder Simulation — Drag the frame below</span>
+        </div>
+        <div style="width: 50px;"></div>
+      </div>
+
+      <div class="window-content">
+        <div class="interactive-viewfinder" id="vf-container">
+          <div class="viewfinder-box" id="vf-box">
+            <span class="corner-bracket cb-tl"></span>
+            <span class="corner-bracket cb-tr"></span>
+            <span class="corner-bracket cb-bl"></span>
+            <span class="corner-bracket cb-br"></span>
+
+            <div class="vf-hud">
+              <div class="vf-pill vf-rec-indicator">
+                <span class="beacon-dot" id="vf-recdot"></span>
+                <span>REC</span>
+                <span id="vf-rectime" style="color: #fff; margin-left: 4px;">00:03.4s</span>
+              </div>
+              <div class="vf-pill" id="vf-dim">1280 × 720 px</div>
+            </div>
+
+            <div class="vf-pill-controls">
+              <span style="font-size: 0.8rem; font-weight: 600; color: #fff;">Recording Area</span>
+              <button class="vf-btn-action" id="vf-toggle-rec">Pause</button>
+              <button class="vf-btn-action" style="background: rgba(255, 59, 92, 0.2); color: var(--coral-light);">Finish</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Grid -->
+  <section class="features" id="features">
+    <div class="section-head">
+      <h2>Everything You Expect in a Pro GIF Tool</h2>
+      <p>Zero compromises on quality, file weight, or capture ergonomics.</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Feature 1 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="9" y1="3" x2="9" y2="21"/>
+          </svg>
+        </div>
+        <h3>Window Snapping &amp; Multi-Display</h3>
+        <p>Snap precisely to any background or foreground application window with one click, drag custom coordinates, or record seamlessly across multi-monitor Retina displays.</p>
+      </article>
+
+      <!-- Feature 2 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/>
+          </svg>
+        </div>
+        <h3>Bayer 4×4 Spatial Dithering</h3>
+        <p>Advanced palette quantization preserves silky smooth gradients without the noisy snow or ballooning byte sizes typical of error diffusion algorithms.</p>
+      </article>
+
+      <!-- Feature 3 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>
+            <path d="M13 13l6 6"/>
+          </svg>
+        </div>
+        <h3>Cursor Tracking &amp; Click Ripples</h3>
+        <p>Never lose the mouse again. Enjoy customizable spotlight halos, distinct cursor tracking, and expanding animated ripple rings on mouse clicks.</p>
+      </article>
+
+      <!-- Feature 4 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+            <line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </div>
+        <h3>Post-Recording Trim &amp; Review</h3>
+        <p>Scrub through recorded frames, dial in precise In/Out trim markers, and inspect the loop before saving to disk. Perfect loops every time.</p>
+      </article>
+
+      <!-- Feature 5 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <h3>Native Drag &amp; Drop Sharing</h3>
+        <p>Drag any GIF thumbnail directly out of the popover and drop it straight into Slack, Discord, Messages, Finder, or Google Chrome with native Cocoa NSDraggingSession.</p>
+      </article>
+
+      <!-- Feature 6 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <h3>Menu Bar First &amp; CLI Headless</h3>
+        <p>Lives quietly in your macOS menu bar with zero Dock clutter. Or trigger automated recordings from the terminal and CI scripts with <code>gifkite record</code>.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Interactive Sandbox & Demos -->
+  <section class="interactive-demos" id="playground">
+    <div class="section-head">
+      <h2>Interactive Technology Sandbox</h2>
+      <p>Test drive the algorithms and visual effects built into Gifkite right in your browser.</p>
+    </div>
+
+    <div class="demos-tabs" role="tablist">
+      <button class="tab-btn active" data-target="demo-ripples" role="tab">Cursor &amp; Ripples</button>
+      <button class="tab-btn" data-target="demo-dither" role="tab">Bayer Dithering</button>
+      <button class="tab-btn" data-target="demo-trim" role="tab">Trim Timeline</button>
+    </div>
+
+    <div class="demo-display-panel">
+      <!-- Demo: Cursor Sandbox -->
+      <div class="demo-view active" id="demo-ripples">
+        <canvas class="ripple-sandbox" id="ripple-canvas"></canvas>
+        <p class="sandbox-caption">Hover to test cursor spotlight halo • Left or right click to spawn animated ripple rings</p>
+      </div>
+
+      <!-- Demo: Dithering Canvas -->
+      <div class="demo-view" id="demo-dither">
+        <div class="dither-controls-bar">
+          <div class="dither-btn-group">
+            <button class="dither-btn active" data-dither="bayer">Bayer 4×4 (Spatial)</button>
+            <button class="dither-btn" data-dither="floyd">Floyd-Steinberg</button>
+            <button class="dither-btn" data-dither="none">None (Posterized)</button>
+          </div>
+          <div class="dither-metric-badge" id="dither-metric">Size: ~180 KB • Smooth Gradients</div>
+        </div>
+        <div class="dither-canvas-wrapper">
+          <canvas id="dither-canvas"></canvas>
+        </div>
+        <p class="sandbox-caption">Real-time palette quantization algorithm comparison on a dynamic gradient</p>
+      </div>
+
+      <!-- Demo: Trim Timeline -->
+      <div class="demo-view" id="demo-trim">
+        <div class="timeline-simulator">
+          <div class="timeline-track-wrapper" id="trim-track">
+            <div class="timeline-frames">
+              <div class="timeline-frame" style="background-color: #242c3d;"></div>
+              <div class="timeline-frame" style="background-color: #2d364a;"></div>
+              <div class="timeline-frame" style="background-color: #38425a;"></div>
+              <div class="timeline-frame" style="background-color: #404c66;"></div>
+              <div class="timeline-frame" style="background-color: #4b5977;"></div>
+              <div class="timeline-frame" style="background-color: #556485;"></div>
+              <div class="timeline-frame" style="background-color: #5f7094;"></div>
+              <div class="timeline-frame" style="background-color: #6a7ca3;"></div>
+            </div>
+            <div class="trim-overlay-left" id="trim-ov-left"></div>
+            <div class="trim-overlay-right" id="trim-ov-right"></div>
+            <div class="trim-handle" id="trim-h-left"></div>
+            <div class="trim-handle" id="trim-h-right"></div>
+          </div>
+          <div class="timeline-info">
+            <span id="trim-info">Frames: 14 → 102 (88 frames, 5.8s loop at 15 FPS)</span>
+            <button class="vf-btn-action" style="padding: 0.35rem 0.8rem; background: var(--coral-primary); color: #fff;">Save Trimmed GIF</button>
+          </div>
+        </div>
+        <p class="sandbox-caption">Frame-by-frame review scrubber with dual in/out trim handles</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shortcuts Reference Table -->
+  <section class="shortcuts" id="shortcuts">
+    <div class="section-head">
+      <h2>Keyboard Shortcuts</h2>
+      <p>Engineered for maximum velocity with familiar Gifox-style ergonomics.</p>
+    </div>
+
+    <table class="shortcuts-table">
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Shortcut</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Window Capture</strong></td>
+          <td><div class="key-combo"><kbd>⌘ Cmd</kbd><kbd>⇧ Shift</kbd><kbd>5</kbd></div></td>
+          <td>Activate interactive window snapping mode</td>
+        </tr>
+        <tr>
+          <td><strong>Region Capture</strong></td>
+          <td><div class="key-combo"><kbd>⌘ Cmd</kbd><kbd>⇧ Shift</kbd><kbd>6</kbd></div></td>
+          <td>Drag crosshair over custom screen coordinates</td>
+        </tr>
+        <tr>
+          <td><strong>Full Screen</strong></td>
+          <td><div class="key-combo"><kbd>⌘ Cmd</kbd><kbd>⇧ Shift</kbd><kbd>7</kbd></div></td>
+          <td>Immediately record the display under your cursor</td>
+        </tr>
+        <tr>
+          <td><strong>Pause / Resume</strong></td>
+          <td><div class="key-combo"><kbd>⌘ Cmd</kbd><kbd>⌥ Option</kbd><kbd>P</kbd></div></td>
+          <td>Pause recording to switch windows and resume anytime</td>
+        </tr>
+        <tr>
+          <td><strong>Stop &amp; Save</strong></td>
+          <td><div class="key-combo"><kbd>⌘ Cmd</kbd><kbd>Escape</kbd></div></td>
+          <td>Complete recording and launch Review Editor</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Documentation & Developer Guide -->
+  <section class="docs" id="docs">
+    <div class="section-head">
+      <h2>Build &amp; CLI Documentation</h2>
+      <p>Simple to compile, easy to integrate into CI/CD pipelines.</p>
+    </div>
+
+    <div class="docs-code-block">
+      <div class="code-header">
+        <span>Terminal — Build from Source (macOS)</span>
+        <button class="vf-btn-action" data-copy="git clone https://github.com/gifkite/gifkite.git&#10;cd gifkite&#10;./build-app.sh">Copy</button>
+      </div>
+      <pre><code><span class="token-comment"># 1. Clone repository</span>
+<span class="token-cmd">git clone</span> https://github.com/gifkite/gifkite.git
+<span class="token-cmd">cd</span> gifkite
+
+<span class="token-comment"># 2. Compile native binary and package Gifkite.app</span>
+<span class="token-cmd">./build-app.sh</span>
+
+<span class="token-comment"># 3. Launch application</span>
+<span class="token-cmd">open</span> Gifkite.app</code></pre>
+    </div>
+
+    <div class="docs-code-block" style="margin-top: 2rem;">
+      <div class="code-header">
+        <span>Terminal — Headless CLI Recording</span>
+        <button class="vf-btn-action" data-copy="./gifkite record -region 100,100,800,600 -duration 10s -dither bayer -cursor -highlight -ripples -o demo.gif">Copy</button>
+      </div>
+      <pre><code><span class="token-comment"># Record 10 seconds of a specific screen region with full effects</span>
+<span class="token-cmd">./gifkite</span> record <span class="token-arg">-region</span> 100,100,800,600 <span class="token-arg">-duration</span> 10s <span class="token-arg">-dither</span> bayer <span class="token-arg">-cursor</span> <span class="token-arg">-highlight</span> <span class="token-arg">-ripples</span> <span class="token-arg">-o</span> demo.gif
+
+<span class="token-comment"># Inspect available displays and pixel bounds</span>
+<span class="token-cmd">./gifkite</span> displays</code></pre>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <strong>Gifkite</strong> — Screen-to-GIF recorder for macOS.
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/gifkite/gifkite" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/gifkite/gifkite/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+        <a href="#shortcuts">Shortcuts</a>
+        <a href="#docs">Documentation</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
