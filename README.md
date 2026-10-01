@@ -1,6 +1,11 @@
 # Gifkite
 
+[![CI](https://github.com/gifkite/gifkite/actions/workflows/ci.yml/badge.svg)](https://github.com/gifkite/gifkite/actions/workflows/ci.yml)
+[![Pages](https://github.com/gifkite/gifkite/actions/workflows/pages.yml/badge.svg)](https://gifkite.github.io/gifkite/)
+
 A Gifox-style menu bar app for recording your screen to GIF, written in Go with Wails v3.
+
+🌐 **Website & Interactive Demo**: [https://gifkite.github.io/gifkite/](https://gifkite.github.io/gifkite/)
 
 ## Build
 
