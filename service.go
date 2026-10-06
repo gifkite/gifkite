@@ -251,13 +251,12 @@ func (s *GifService) TogglePause() {
 
 // ---- starting ----
 
-// StartRegion freezes the screen and opens the region/window picker.
+// StartRegion opens the transparent region/window picker overlay.
 func (s *GifService) StartRegion() {
 	if !s.transition(phaseIdle, phasePicking) {
 		return
 	}
 	s.popover.Hide()
-	time.Sleep(180 * time.Millisecond) // let the popover fade before we grab the screen
 
 	dispIdx, scr := s.getActiveDisplay()
 	s.mu.Lock()
@@ -265,19 +264,9 @@ func (s *GifService) StartRegion() {
 	s.activeScreen = scr
 	s.mu.Unlock()
 
-	img, err := screenshot.CaptureRect(screenshot.GetDisplayBounds(dispIdx))
-	if err != nil {
-		s.fail(fmt.Errorf("couldn't capture screen %d: %w (check screen recording permission)", dispIdx, err))
-		return
-	}
-	var buf bytes.Buffer
-	jpeg.Encode(&buf, img, &jpeg.Options{Quality: 88})
-	s.mu.Lock()
-	s.frozen = buf.Bytes()
-	s.mu.Unlock()
-
 	wins := listWindows(scr.Bounds.X, scr.Bounds.Y, scr.Bounds.Width, scr.Bounds.Height)
 	s.picker.SetBounds(scr.Bounds)
+	setWindowTransparent(s.picker.NativeWindow())
 	s.app.Event.Emit("picker:open", map[string]any{
 		"time":    time.Now().UnixNano(),
 		"windows": wins,

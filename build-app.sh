@@ -5,7 +5,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
 echo "Building gifkite binary..."
-go build -o gifkite .
+go build -tags private_mac_apis -o gifkite .
 
 APP="Gifkite.app"
 echo "Packaging $APP bundle..."

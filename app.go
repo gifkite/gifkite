@@ -68,16 +68,18 @@ func runApp() {
 		}
 	})
 
-	// Full-screen overlay showing a frozen screenshot to drag a region on.
+	// Full-screen overlay for selecting region/window directly over the live screen.
 	svc.picker = app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:          "picker",
-		URL:           "/picker.html",
-		Frameless:     true,
-		AlwaysOnTop:   true,
-		Hidden:        true,
-		DisableResize: true,
-		Windows:       application.WindowsWindow{HiddenOnTaskbar: true},
+		Name:             "picker",
+		URL:              "/picker.html",
+		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
+		Frameless:        true,
+		AlwaysOnTop:      true,
+		Hidden:           true,
+		DisableResize:    true,
+		Windows:          application.WindowsWindow{HiddenOnTaskbar: true},
 		Mac: application.MacWindow{
+			Backdrop:            application.MacBackdropTransparent,
 			WindowLevel:        application.MacWindowLevelScreenSaver, // above the menu bar
 			CollectionBehavior: application.MacWindowCollectionBehaviorCanJoinAllSpaces | application.MacWindowCollectionBehaviorFullScreenAuxiliary,
 			DisableShadow:      true,
@@ -106,6 +108,7 @@ func runApp() {
 	setWindowInvisibleToCapture(svc.popover.NativeWindow())
 	setWindowInvisibleToCapture(svc.picker.NativeWindow())
 	setWindowInvisibleToCapture(svc.controls.NativeWindow())
+	setWindowTransparent(svc.picker.NativeWindow())
 
 	tray := app.SystemTray.New()
 	svc.tray = tray

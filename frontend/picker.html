@@ -4,30 +4,90 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="/style.css">
 <style>
-  html, body { background: #000; overflow: hidden; cursor: crosshair; }
-  #shot { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: fill; pointer-events: none; }
-  #shade { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.42); }
+  html, body {
+    background: transparent;
+    overflow: hidden;
+    cursor: crosshair;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #shade {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.42);
+    pointer-events: none;
+  }
+
   #sel {
-    position: fixed; display: none;
+    position: fixed;
+    display: none;
     /* the shade outside the selection is one enormous shadow */
     box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.42);
-    outline: 1px solid rgba(255, 255, 255, 0.55);
+    outline: 1.5px solid rgba(255, 255, 255, 0.7);
     z-index: 10;
   }
-  #sel i { position: absolute; width: 26px; height: 26px; border: 4px solid var(--rec); }
-  #sel i:nth-child(1) { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
-  #sel i:nth-child(2) { top: -4px; right: -4px; border-left: 0; border-bottom: 0; }
-  #sel i:nth-child(3) { bottom: -4px; left: -4px; border-right: 0; border-top: 0; }
-  #sel i:nth-child(4) { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
-  #dims {
-    position: absolute; left: 0; top: -28px; padding: 3px 8px; border-radius: 6px;
-    background: var(--rec); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
+  #sel.selected {
+    cursor: move;
   }
-  #dims.below { top: auto; bottom: -28px; }
+
+  /* Corner brackets */
+  #sel i {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 3.5px solid var(--rec);
+    pointer-events: none;
+  }
+  #sel i:nth-child(1) { top: -3px; left: -3px; border-right: 0; border-bottom: 0; }
+  #sel i:nth-child(2) { top: -3px; right: -3px; border-left: 0; border-bottom: 0; }
+  #sel i:nth-child(3) { bottom: -3px; left: -3px; border-right: 0; border-top: 0; }
+  #sel i:nth-child(4) { bottom: -3px; right: -3px; border-left: 0; border-top: 0; }
+
+  /* 8 Resize handles */
+  .h-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border: 2px solid var(--rec);
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    z-index: 15;
+    display: none;
+  }
+  #sel.selected .h-dot { display: block; }
+  .h-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+  .h-n  { top: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+  .h-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+  .h-e  { top: calc(50% - 5px); right: -5px; cursor: ew-resize; }
+  .h-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+  .h-s  { bottom: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+  .h-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+  .h-w  { top: calc(50% - 5px); left: -5px; cursor: ew-resize; }
+
+  /* Dimension badge over selection */
+  #dims {
+    position: absolute;
+    left: 0;
+    top: -26px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: var(--rec);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  #dims.below { top: auto; bottom: -26px; }
 
   /* Window snapping highlight */
   #win-hl {
-    position: fixed; display: none; pointer-events: none;
+    position: fixed;
+    display: none;
+    pointer-events: none;
     border: 2.5px solid #3b82f6;
     background: rgba(59, 130, 246, 0.12);
     border-radius: 8px;
@@ -35,13 +95,23 @@
     z-index: 6;
   }
   #win-badge {
-    position: absolute; top: -32px; left: 6px;
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 7px;
+    position: absolute;
+    top: -32px;
+    left: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 7px;
     background: rgba(15, 23, 42, 0.94);
-    color: #fff; font-size: 12px; font-weight: 500;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    white-space: nowrap; max-width: 500px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     backdrop-filter: blur(10px);
   }
   #win-badge.below { top: auto; bottom: -32px; }
@@ -49,24 +119,213 @@
   #win-title { opacity: 0.85; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
   #win-dims { opacity: 0.6; font-size: 11px; margin-left: 4px; }
 
-  .guide { position: fixed; background: rgba(255, 255, 255, 0.35); pointer-events: none; }
+  /* Crosshair guides */
+  .guide { position: fixed; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
   #gx { left: 0; right: 0; height: 1px; }
   #gy { top: 0; bottom: 0; width: 1px; }
+
+  /* Initial top guide pill */
   #help {
-    position: fixed; top: 28px; left: 50%; transform: translateX(-50%);
-    padding: 8px 16px; border-radius: 9px; background: rgba(20, 22, 26, 0.88); color: #fff;
-    font-size: 13px; backdrop-filter: blur(8px); z-index: 20;
+    position: fixed;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: 9px;
+    background: rgba(20, 22, 26, 0.88);
+    color: #fff;
+    font-size: 13px;
+    backdrop-filter: blur(8px);
+    z-index: 20;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    pointer-events: none;
+    transition: opacity 0.15s ease;
   }
-  #help kbd { font: inherit; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.16); }
-  body.dragging #help, body.dragging .guide, body.dragging #win-hl { display: none !important; }
+  #help kbd {
+    font: inherit;
+    font-size: 11.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .16);
+  }
+  body.has-selection #help, body.dragging #help, body.dragging .guide, body.dragging #win-hl {
+    display: none !important;
+  }
+
+  /* Gifox-style Floating Dialog Box */
+  #dialog {
+    position: fixed;
+    display: none;
+    z-index: 50;
+    height: 44px;
+    padding: 0 8px 0 12px;
+    background: rgba(20, 22, 27, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+    align-items: center;
+    gap: 9px;
+    color: #fff;
+    font-size: 12.5px;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    animation: dlg-pop 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes dlg-pop {
+    from { opacity: 0; transform: scale(0.96) translateY(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  #dialog.visible {
+    display: flex;
+  }
+
+  .dlg-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .dlg-badge svg {
+    color: #60a5fa;
+    flex-shrink: 0;
+  }
+  .dlg-app {
+    font-weight: 600;
+    color: #f3f4f6;
+  }
+  .dlg-title {
+    opacity: 0.65;
+    font-size: 11.5px;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dlg-sep {
+    width: 1px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.13);
+    flex-shrink: 0;
+  }
+
+  .dlg-size {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+  }
+  .size-inp {
+    width: 52px;
+    height: 26px;
+    padding: 0 4px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 12px;
+    text-align: center;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.12s;
+  }
+  .size-inp:focus {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: #3b82f6;
+  }
+  .size-inp::-webkit-inner-spin-button,
+  .size-inp::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .size-x {
+    opacity: 0.45;
+    font-weight: 500;
+  }
+  .size-unit {
+    opacity: 0.45;
+    font-size: 11px;
+  }
+
+  .dlg-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-dlg-cancel {
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.75);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    background: transparent;
+  }
+  .btn-dlg-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  .btn-dlg-record {
+    height: 30px;
+    padding: 0 13px;
+    border-radius: 8px;
+    background: var(--rec);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(229, 72, 77, 0.45);
+    transition: all 0.12s;
+  }
+  .btn-dlg-record:hover {
+    filter: brightness(1.1);
+    transform: translateY(-0.5px);
+  }
+  .btn-dlg-record:active {
+    transform: translateY(0.5px);
+  }
+  .btn-dlg-record .rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffffff;
+    animation: rec-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes rec-pulse {
+    50% { opacity: 0.4; }
+  }
+  .btn-dlg-record kbd {
+    font: inherit;
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.28);
+    color: rgba(255, 255, 255, 0.95);
+  }
 </style>
 </head>
 <body>
-<img id="shot" alt="">
 <div id="shade"></div>
 <div class="guide" id="gx"></div>
 <div class="guide" id="gy"></div>
+
+<!-- Window Snap Hover -->
 <div id="win-hl">
   <div id="win-badge">
     <span id="win-app"></span>
@@ -74,12 +333,66 @@
     <span id="win-dims" class="num"></span>
   </div>
 </div>
-<div id="sel"><i></i><i></i><i></i><i></i><span id="dims" class="num"></span></div>
-<div id="help">Click a window • Drag to select • <kbd>Space</kbd> or Release to record • <kbd>⌘A</kbd> Full Screen • <kbd>Esc</kbd> Cancel</div>
+
+<!-- Selection Box -->
+<div id="sel">
+  <i></i><i></i><i></i><i></i>
+  <span id="dims" class="num"></span>
+  <!-- Resize handles -->
+  <div class="h-dot h-nw" data-handle="nw"></div>
+  <div class="h-dot h-n"  data-handle="n"></div>
+  <div class="h-dot h-ne" data-handle="ne"></div>
+  <div class="h-dot h-e"  data-handle="e"></div>
+  <div class="h-dot h-se" data-handle="se"></div>
+  <div class="h-dot h-s"  data-handle="s"></div>
+  <div class="h-dot h-sw" data-handle="sw"></div>
+  <div class="h-dot h-w"  data-handle="w"></div>
+</div>
+
+<!-- Top Guide -->
+<div id="help">Click a window • Drag to select • <kbd>Space</kbd> or <kbd>Enter</kbd> to record • <kbd>⌘A</kbd> Full Screen • <kbd>Esc</kbd> Cancel</div>
+
+<!-- Gifox-style Floating Dialog Box -->
+<div id="dialog">
+  <div class="dlg-badge" id="dlg-badge">
+    <svg id="dlg-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3zm1 1v8h10V4H3z"/>
+    </svg>
+    <span class="dlg-app" id="dlg-app">Region</span>
+    <span class="dlg-title" id="dlg-title"></span>
+  </div>
+
+  <div class="dlg-sep"></div>
+
+  <div class="dlg-size">
+    <input type="number" class="size-inp num" id="inp-w" min="16" max="9999" />
+    <span class="size-x">×</span>
+    <input type="number" class="size-inp num" id="inp-h" min="16" max="9999" />
+    <span class="size-unit">px</span>
+  </div>
+
+  <div class="dlg-sep"></div>
+
+  <div class="dlg-actions">
+    <button class="btn-dlg-cancel" id="btn-cancel" title="Cancel selection (Esc)">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M1 1l10 10M11 1L1 11"/>
+      </svg>
+      <span>Cancel</span>
+    </button>
+    <button class="btn-dlg-record" id="btn-record" title="Start Recording (Enter or Space)">
+      <span class="rec-dot"></span>
+      <span>Record</span>
+      <kbd>↵</kbd>
+    </button>
+  </div>
+</div>
+
 <script type="module">
 import { Call, Events } from "/wails/runtime.js";
 const call = (m, ...a) => Call.ByName(`main.GifService.${m}`, ...a);
-const shot = document.getElementById("shot"), shade = document.getElementById("shade");
+
+const shade = document.getElementById("shade");
 const sel = document.getElementById("sel"), dims = document.getElementById("dims");
 const gx = document.getElementById("gx"), gy = document.getElementById("gy");
 const winHl = document.getElementById("win-hl");
@@ -88,46 +401,155 @@ const winApp = document.getElementById("win-app");
 const winTitle = document.getElementById("win-title");
 const winDims = document.getElementById("win-dims");
 
-let start = null, rect = null;
+const dialog = document.getElementById("dialog");
+const dlgApp = document.getElementById("dlg-app");
+const dlgTitle = document.getElementById("dlg-title");
+const inpW = document.getElementById("inp-w");
+const inpH = document.getElementById("inp-h");
+const btnCancel = document.getElementById("btn-cancel");
+const btnRecord = document.getElementById("btn-record");
+
 let windows = [];
 let hoveredWin = null;
-let isRealDrag = false;
+
+// State: "idle" | "drawing" | "selected" | "moving" | "resizing"
+let mode = "idle";
+let rect = null;
+let dragOrigin = null;
+let rectSnapshot = null;
+let activeHandle = null;
 
 function reset() {
-  start = rect = null;
+  mode = "idle";
+  rect = null;
+  dragOrigin = null;
+  rectSnapshot = null;
+  activeHandle = null;
   hoveredWin = null;
-  isRealDrag = false;
+
   sel.style.display = "none";
+  sel.classList.remove("selected");
   winHl.style.display = "none";
   shade.style.display = "block";
-  document.body.classList.remove("dragging");
+  dialog.classList.remove("visible");
+  document.body.classList.remove("dragging", "has-selection");
 }
 
 function finish(r) {
   const vw = innerWidth, vh = innerHeight;
   reset();
   if (!r || r.w < 8 || r.h < 8) return;
-  shot.removeAttribute("src");
   call("PickerDone", { x: r.x / vw, y: r.y / vh, w: r.w / vw, h: r.h / vh });
+}
+
+function renderRect() {
+  if (!rect) return;
+  sel.style.display = "block";
+  sel.style.left = `${rect.x}px`;
+  sel.style.top = `${rect.y}px`;
+  sel.style.width = `${rect.w}px`;
+  sel.style.height = `${rect.h}px`;
+  shade.style.display = "none"; // selection's 200vmax box-shadow provides the scrim
+
+  dims.textContent = `${Math.round(rect.w * devicePixelRatio)} × ${Math.round(rect.h * devicePixelRatio)}`;
+  dims.classList.toggle("below", rect.y < 32);
+
+  inpW.value = Math.round(rect.w);
+  inpH.value = Math.round(rect.h);
+}
+
+function updateDialogPosition() {
+  if (!rect || (mode !== "selected" && mode !== "moving" && mode !== "resizing")) {
+    dialog.classList.remove("visible");
+    return;
+  }
+  dialog.classList.add("visible");
+  const dlgW = dialog.offsetWidth || 340;
+  const dlgH = dialog.offsetHeight || 44;
+
+  // Center horizontally with the selected rectangle, clamped to screen padding
+  let left = rect.x + (rect.w - dlgW) / 2;
+  left = Math.max(12, Math.min(left, innerWidth - dlgW - 12));
+
+  // Position vertically: prefer directly below the selection
+  let top = rect.y + rect.h + 10;
+  if (top + dlgH + 12 > innerHeight) {
+    // If not enough space below, place above
+    top = rect.y - dlgH - 10;
+    if (top < 12) {
+      // If not enough space above either, position pinned inside the bottom of selection
+      top = Math.max(12, rect.y + rect.h - dlgH - 12);
+    }
+  }
+
+  dialog.style.left = `${Math.round(left)}px`;
+  dialog.style.top = `${Math.round(top)}px`;
+}
+
+function selectRect(newRect, info = {}) {
+  rect = { ...newRect };
+  mode = "selected";
+  sel.classList.add("selected");
+  document.body.classList.add("has-selection");
+  document.body.classList.remove("dragging");
+  winHl.style.display = "none";
+
+  dlgApp.textContent = info.appName || "Region";
+  dlgTitle.textContent = info.title ? `— ${info.title}` : "";
+
+  renderRect();
+  updateDialogPosition();
 }
 
 Events.On("picker:open", (e) => {
   reset();
   const data = e.data;
-  if (typeof data === "object" && data !== null) {
-    shot.src = `/frozen.jpg?t=${data.time}`;
-    windows = data.windows || [];
+  if (typeof data === "object" && data !== null && data.windows) {
+    windows = data.windows;
   } else {
-    shot.src = `/frozen.jpg?t=${data}`;
     windows = [];
   }
+});
+
+// Prevent mouse events inside floating dialog from interacting with the background
+dialog.addEventListener("mousedown", (e) => e.stopPropagation());
+dialog.addEventListener("mousemove", (e) => e.stopPropagation());
+dialog.addEventListener("mouseup", (e) => e.stopPropagation());
+
+btnRecord.addEventListener("click", () => {
+  if (rect && rect.w >= 8 && rect.h >= 8) {
+    finish(rect);
+  }
+});
+
+btnCancel.addEventListener("click", () => {
+  reset();
+});
+
+function applySizeInput() {
+  if (!rect) return;
+  const nw = Math.max(20, Math.min(innerWidth, parseInt(inpW.value) || rect.w));
+  const nh = Math.max(20, Math.min(innerHeight, parseInt(inpH.value) || rect.h));
+  rect.w = Math.min(nw, innerWidth - rect.x);
+  rect.h = Math.min(nh, innerHeight - rect.y);
+  renderRect();
+  updateDialogPosition();
+}
+
+inpW.addEventListener("change", applySizeInput);
+inpH.addEventListener("change", applySizeInput);
+inpW.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { applySizeInput(); inpW.blur(); }
+});
+inpH.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { applySizeInput(); inpH.blur(); }
 });
 
 addEventListener("mousemove", (e) => {
   gx.style.top = `${e.clientY}px`;
   gy.style.left = `${e.clientX}px`;
 
-  if (!start) {
+  if (mode === "idle") {
     // Window hover check
     hoveredWin = null;
     for (const w of windows) {
@@ -153,49 +575,136 @@ addEventListener("mousemove", (e) => {
     return;
   }
 
-  const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
-  if (dist > 5) {
-    isRealDrag = true;
-    document.body.classList.add("dragging");
-    winHl.style.display = "none";
-
-    const x = Math.min(start.x, e.clientX), y = Math.min(start.y, e.clientY);
-    const w = Math.abs(e.clientX - start.x), h = Math.abs(e.clientY - start.y);
+  if (mode === "drawing") {
+    const x = Math.min(dragOrigin.x, e.clientX), y = Math.min(dragOrigin.y, e.clientY);
+    const w = Math.abs(e.clientX - dragOrigin.x), h = Math.abs(e.clientY - dragOrigin.y);
     rect = { x, y, w, h };
-    Object.assign(sel.style, { display: "block", left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
-    shade.style.display = "none"; // the selection's shadow takes over
-    dims.textContent = `${Math.round(w * devicePixelRatio)} × ${Math.round(h * devicePixelRatio)}`;
-    dims.classList.toggle("below", y < 34);
+    renderRect();
+    return;
+  }
+
+  if (mode === "moving") {
+    const dx = e.clientX - dragOrigin.x;
+    const dy = e.clientY - dragOrigin.y;
+    rect.x = Math.max(0, Math.min(rectSnapshot.x + dx, innerWidth - rect.w));
+    rect.y = Math.max(0, Math.min(rectSnapshot.y + dy, innerHeight - rect.h));
+    renderRect();
+    updateDialogPosition();
+    return;
+  }
+
+  if (mode === "resizing") {
+    const dx = e.clientX - dragOrigin.x;
+    const dy = e.clientY - dragOrigin.y;
+    let { x, y, w, h } = rectSnapshot;
+
+    if (activeHandle.includes("e")) {
+      w = Math.max(20, Math.min(w + dx, innerWidth - x));
+    }
+    if (activeHandle.includes("s")) {
+      h = Math.max(20, Math.min(h + dy, innerHeight - y));
+    }
+    if (activeHandle.includes("w")) {
+      const newW = Math.max(20, w - dx);
+      const newX = x + (w - newW);
+      if (newX >= 0) {
+        x = newX;
+        w = newW;
+      }
+    }
+    if (activeHandle.includes("n")) {
+      const newH = Math.max(20, h - dy);
+      const newY = y + (h - newH);
+      if (newY >= 0) {
+        y = newY;
+        h = newH;
+      }
+    }
+
+    rect = { x, y, w, h };
+    renderRect();
+    updateDialogPosition();
   }
 });
 
 addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
-  start = { x: e.clientX, y: e.clientY };
-  isRealDrag = false;
+
+  if (mode === "selected") {
+    // Check if clicked on a resize handle
+    const handleEl = e.target.closest(".h-dot");
+    if (handleEl) {
+      mode = "resizing";
+      activeHandle = handleEl.dataset.handle;
+      dragOrigin = { x: e.clientX, y: e.clientY };
+      rectSnapshot = { ...rect };
+      dialog.classList.remove("visible");
+      return;
+    }
+
+    // Check if clicked inside the selection box to move it
+    const inside = e.clientX >= rect.x && e.clientX <= rect.x + rect.w &&
+                   e.clientY >= rect.y && e.clientY <= rect.y + rect.h;
+    if (inside) {
+      mode = "moving";
+      dragOrigin = { x: e.clientX, y: e.clientY };
+      rectSnapshot = { ...rect };
+      dialog.classList.remove("visible");
+      return;
+    }
+
+    // Clicked outside existing selection: start drawing a new region
+    reset();
+  }
+
+  // mode is now idle: start drawing or prepare to snap to window
+  dragOrigin = { x: e.clientX, y: e.clientY };
+  mode = "drawing";
+  document.body.classList.add("dragging");
+  winHl.style.display = "none";
 });
 
-addEventListener("mouseup", () => {
-  if (!start) return;
-  if (isRealDrag && rect) {
-    finish(rect);
-  } else if (hoveredWin) {
-    // Clicked a window to snap!
-    finish({ x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h });
-  } else {
-    reset();
+addEventListener("mouseup", (e) => {
+  if (mode === "drawing") {
+    document.body.classList.remove("dragging");
+    const dist = dragOrigin ? Math.hypot(e.clientX - dragOrigin.x, e.clientY - dragOrigin.y) : 0;
+
+    if (dist <= 5 && hoveredWin) {
+      // Clicked on a window to select it!
+      selectRect(
+        { x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h },
+        { appName: hoveredWin.appName || "Window", title: hoveredWin.title || "" }
+      );
+    } else if (rect && rect.w >= 16 && rect.h >= 16) {
+      // Finished dragging a region!
+      selectRect(rect, { appName: "Region", title: "" });
+    } else {
+      reset();
+    }
+    return;
+  }
+
+  if (mode === "moving" || mode === "resizing") {
+    mode = "selected";
+    activeHandle = null;
+    updateDialogPosition();
   }
 });
 
 addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    reset();
-    shot.removeAttribute("src");
-    call("PickerCancel");
+    if (mode === "selected" || mode === "moving" || mode === "resizing") {
+      reset();
+    } else {
+      reset();
+      call("PickerCancel");
+    }
   } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
     e.preventDefault();
-    finish({ x: 0, y: 0, w: innerWidth, h: innerHeight });
+    selectRect({ x: 0, y: 0, w: innerWidth, h: innerHeight }, { appName: "Full Screen", title: "" });
   } else if (e.code === "Space" || e.key === "Enter") {
+    // If typing in input, don't trigger finish
+    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
     e.preventDefault();
     if (rect && rect.w >= 8 && rect.h >= 8) {
       finish(rect);

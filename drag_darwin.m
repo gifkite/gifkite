@@ -88,3 +88,38 @@ void setWindowInvisibleToCapture(void* nsWindowPtr) {
         }
     });
 }
+
+void setWindowTransparent(void* nsWindowPtr) {
+    if (!nsWindowPtr) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSWindow *window = (__bridge NSWindow*)nsWindowPtr;
+        [window setOpaque:NO];
+        [window setBackgroundColor:[NSColor clearColor]];
+        [window setHasShadow:NO];
+
+        NSView *contentView = [window contentView];
+        if (contentView) {
+            [contentView setWantsLayer:YES];
+            contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
+
+            NSMutableArray *views = [NSMutableArray arrayWithObject:contentView];
+            while ([views count] > 0) {
+                NSView *v = [views firstObject];
+                [views removeObjectAtIndex:0];
+
+                @try {
+                    [v setValue:@NO forKey:@"drawsBackground"];
+                } @catch (NSException *e) {}
+
+                if ([v respondsToSelector:@selector(setUnderPageBackgroundColor:)]) {
+                    @try {
+                        [v performSelector:@selector(setUnderPageBackgroundColor:) withObject:[NSColor clearColor]];
+                    } @catch (NSException *e) {}
+                }
+
+                [views addObjectsFromArray:[v subviews]];
+            }
+        }
+    });
+}
+

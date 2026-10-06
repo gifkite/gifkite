@@ -3,5 +3,6 @@
 
 void performNativeDrag(void* nsWindowPtr, const char* cpath);
 void setWindowInvisibleToCapture(void* nsWindowPtr);
+void setWindowTransparent(void* nsWindowPtr);
 
 #endif

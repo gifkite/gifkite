@@ -28,3 +28,9 @@ func setWindowInvisibleToCapture(window unsafe.Pointer) {
 		C.setWindowInvisibleToCapture(window)
 	}
 }
+
+func setWindowTransparent(window unsafe.Pointer) {
+	if window != nil {
+		C.setWindowTransparent(window)
+	}
+}
