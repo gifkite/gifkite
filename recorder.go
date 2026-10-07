@@ -21,6 +21,7 @@ type RecorderOptions struct {
 	ShowCursor      bool
 	CursorHighlight bool
 	ClickRipples    bool
+	WindowID        int
 }
 
 // Recorder grabs a screen rectangle on a ticker until stopped.
@@ -53,8 +54,8 @@ func NewRecorder(rect image.Rectangle, fps int, scale float64, maxDur time.Durat
 	if fps < 1 {
 		fps = 1
 	}
-	if fps > 50 { // GIF delays are in 1/100 s; anything faster gets clamped by viewers
-		fps = 50
+	if fps > 60 {
+		fps = 60
 	}
 	if scale <= 0 || scale > 1 {
 		scale = 1
@@ -124,9 +125,80 @@ func (r *Recorder) Stop() ([]Frame, time.Time, error) {
 	return r.frames, adjustedEnd, r.err
 }
 
+func (r *Recorder) loopSCK() bool {
+	if !isSCKAvailable() {
+		return false
+	}
+
+	frameCh := make(chan Frame, 30)
+	sckShowCursor := r.opts.ShowCursor && !r.opts.CursorHighlight && !r.opts.ClickRipples
+
+	stream, err := startSCK(r.rect, r.opts.WindowID, r.fps, sckShowCursor, func(img *image.RGBA, at time.Time) {
+		select {
+		case frameCh <- Frame{Img: img, At: at}:
+		default:
+		}
+	})
+	if err != nil || stream == nil {
+		return false
+	}
+	defer stream.Stop()
+
+	if r.opts.ClickRipples {
+		r.clickTracker = NewClickTracker()
+		r.clickTracker.Start()
+		defer r.clickTracker.Stop()
+	}
+
+	start := time.Now()
+	var last *image.RGBA
+
+	for {
+		select {
+		case <-r.stop:
+			return true
+		case frame := <-frameCh:
+			if r.IsPaused() {
+				continue
+			}
+			now := frame.At
+			img := frame.Img
+
+			if r.opts.CursorHighlight || r.opts.ClickRipples || (r.opts.ShowCursor && !sckShowCursor) {
+				cursor := getCursorPoint()
+				var clicks []ClickEvent
+				if r.clickTracker != nil {
+					clicks = r.clickTracker.ActiveClicks(now)
+				}
+				targetRect := r.rect
+				if r.opts.WindowID > 0 {
+					targetRect = image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy())
+				}
+				RenderCursorEffects(img, targetRect, cursor, clicks, now, r.opts.ShowCursor && !sckShowCursor, r.opts.CursorHighlight, r.opts.ClickRipples)
+			}
+
+			img = r.resize(img)
+			adjustedAt := now.Add(-r.PausedDuration())
+			if last == nil || !bytes.Equal(last.Pix, img.Pix) {
+				r.frames = append(r.frames, Frame{Img: img, At: adjustedAt})
+				last = img
+			}
+			if r.maxDur > 0 && now.Sub(start)-r.PausedDuration() >= r.maxDur {
+				return true
+			}
+		}
+	}
+}
+
 func (r *Recorder) loop() {
 	defer close(r.done)
 	defer func() { r.end = time.Now() }()
+
+	if isSCKAvailable() {
+		if ok := r.loopSCK(); ok {
+			return
+		}
+	}
 
 	if r.opts.ClickRipples {
 		r.clickTracker = NewClickTracker()

@@ -10,11 +10,14 @@ var trayTemplateBytes []byte
 //go:embed assets/gifkiteTemplate.png
 var trayTemplate1xBytes []byte
 
+//go:embed assets/AppIcon-32.png
+var appIconColorBytes []byte
+
 func trayIconTemplate() []byte {
 	return trayTemplateBytes
 }
 
 func trayIconColor() []byte {
-	return trayTemplateBytes
+	return appIconColorBytes
 }
 

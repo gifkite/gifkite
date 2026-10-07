@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "reponerve": {
+      "type": "stdio",
+      "command": "reponerve",
+      "args": ["mcp"],
+      "env": {
+        "REPONERVE_WORKSPACE": "${workspaceFolder}/.reponerve"
+      }
+    }
+  }
+}

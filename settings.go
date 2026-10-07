@@ -14,10 +14,12 @@ type Settings struct {
 	OutputDir       string  `json:"outputDir"`
 	Dither          string  `json:"dither"`
 	Trim            bool    `json:"trim"`
+	AutoCopy        bool    `json:"autoCopy"`
 	ShowCursor      bool    `json:"showCursor"`
 	CursorHighlight bool    `json:"cursorHighlight"`
 	ClickRipples    bool    `json:"clickRipples"`
 	ShowControls    bool    `json:"showControls"`
+	Format          string  `json:"format"`
 }
 
 func defaultSettings() Settings {
@@ -29,10 +31,12 @@ func defaultSettings() Settings {
 		OutputDir:       defaultOutputDir(),
 		Dither:          "none",
 		Trim:            true,
+		AutoCopy:        true,
 		ShowCursor:      true,
 		CursorHighlight: true,
 		ClickRipples:    true,
 		ShowControls:    true,
+		Format:          "gif",
 	}
 }
 
@@ -54,13 +58,13 @@ func loadSettings() Settings {
 
 func (s Settings) clamp() Settings {
 	d := defaultSettings()
-	if s.FPS < 5 || s.FPS > 50 {
+	if s.FPS < 5 || s.FPS > 60 {
 		s.FPS = d.FPS
 	}
 	if s.Scale <= 0 || s.Scale > 1 {
 		s.Scale = d.Scale
 	}
-	if s.MaxSeconds < 5 || s.MaxSeconds > 600 {
+	if s.MaxSeconds < 0 || (s.MaxSeconds > 0 && s.MaxSeconds < 5) || s.MaxSeconds > 7200 {
 		s.MaxSeconds = d.MaxSeconds
 	}
 	if s.OutputDir == "" {
@@ -68,6 +72,9 @@ func (s Settings) clamp() Settings {
 	}
 	if s.Dither != "none" && s.Dither != "bayer" && s.Dither != "floyd" {
 		s.Dither = d.Dither
+	}
+	if s.Format != "gif" && s.Format != "webp" && s.Format != "mp4" {
+		s.Format = "gif"
 	}
 	return s
 }

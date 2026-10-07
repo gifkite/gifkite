@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,10 +40,11 @@ const (
 // (physical pixels vs. DIP, depending on the OS), so the region is stored
 // in a space both can be derived from.
 type NormRect struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	W float64 `json:"w"`
-	H float64 `json:"h"`
+	X        float64 `json:"x"`
+	Y        float64 `json:"y"`
+	W        float64 `json:"w"`
+	H        float64 `json:"h"`
+	WindowID int     `json:"windowId,omitempty"`
 }
 
 type State struct {
@@ -131,17 +134,25 @@ func (s *GifService) checkPermission() bool {
 
 func (s *GifService) OpenPermissionSettings() {
 	requestScreenPermission()
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		exec.Command("open", "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture").Start()
+	case "windows":
+		exec.Command("rundll32", "url.dll,FileProtocolHandler", "ms-settings:privacy-screencapture").Start()
 	}
 }
 
 func playSound(name string) {
-	if runtime.GOOS == "darwin" {
+	switch runtime.GOOS {
+	case "darwin":
 		p := filepath.Join("/System/Library/Sounds", name+".aiff")
 		if _, err := os.Stat(p); err == nil {
 			go exec.Command("afplay", p).Run()
 		}
+	case "windows":
+		go exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", "[System.Media.SystemSounds]::Asterisk.Play()").Run()
+	default:
+		go exec.Command("paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga").Run()
 	}
 }
 
@@ -267,6 +278,20 @@ func (s *GifService) StartRegion() {
 	wins := listWindows(scr.Bounds.X, scr.Bounds.Y, scr.Bounds.Width, scr.Bounds.Height)
 	s.picker.SetBounds(scr.Bounds)
 	setWindowTransparent(s.picker.NativeWindow())
+
+	// Capture screen snapshot for the pixel loupe magnifier
+	go func() {
+		bounds := screenshot.GetDisplayBounds(dispIdx)
+		if img, err := screenshot.CaptureRect(bounds); err == nil {
+			var buf bytes.Buffer
+			if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90}); err == nil {
+				s.mu.Lock()
+				s.frozen = buf.Bytes()
+				s.mu.Unlock()
+			}
+		}
+	}()
+
 	s.app.Event.Emit("picker:open", map[string]any{
 		"time":    time.Now().UnixNano(),
 		"windows": wins,
@@ -306,7 +331,7 @@ func (s *GifService) StartScreen() {
 	s.activeDisplay = dispIdx
 	s.activeScreen = scr
 	s.mu.Unlock()
-	go s.begin(NormRect{0, 0, 1, 1}, true)
+	go s.begin(NormRect{X: 0, Y: 0, W: 1, H: 1}, true)
 }
 
 func (s *GifService) StartLast() {
@@ -348,6 +373,7 @@ func (s *GifService) begin(r NormRect, full bool) {
 		ShowCursor:      cfg.ShowCursor,
 		CursorHighlight: cfg.CursorHighlight,
 		ClickRipples:    cfg.ClickRipples,
+		WindowID:        r.WindowID,
 	})
 	s.mu.Lock()
 	if s.phase != phaseCountdown { // stopped during the countdown
@@ -477,7 +503,7 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 
 	s.tray.SetLabel("Saving…")
 	s.broadcast()
-	go s.encodeAndSave(frames, end)
+	go s.encodeAndSave(frames, end, s.settings.Format)
 }
 
 func (s *GifService) reviewInfoLocked() ReviewInfo {
@@ -521,8 +547,8 @@ func (s *GifService) GetPreviewFrame(i int) []byte {
 	return buf.Bytes()
 }
 
-// ConfirmReview trims the pending frames to [startIdx, endIdx] inclusive and encodes the GIF.
-func (s *GifService) ConfirmReview(startIdx, endIdx int) error {
+// ConfirmReview trims the pending frames to [startIdx, endIdx] inclusive, applies annotations, and encodes the recording in the requested format.
+func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotations []Annotation) error {
 	s.mu.Lock()
 	if s.phase != phaseReview || len(s.pendingFrames) == 0 {
 		s.mu.Unlock()
@@ -539,7 +565,16 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int) error {
 	}
 
 	trimmed := make([]Frame, endIdx-startIdx+1)
-	copy(trimmed, s.pendingFrames[startIdx:endIdx+1])
+	for i, orig := range s.pendingFrames[startIdx : endIdx+1] {
+		if len(annotations) > 0 && orig.Img != nil {
+			clone := image.NewRGBA(orig.Img.Bounds())
+			copy(clone.Pix, orig.Img.Pix)
+			ApplyAnnotations(clone, annotations)
+			trimmed[i] = Frame{Img: clone, At: orig.At}
+		} else {
+			trimmed[i] = orig
+		}
+	}
 
 	var end time.Time
 	if endIdx+1 < len(s.pendingFrames) {
@@ -548,13 +583,17 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int) error {
 		end = s.pendingEnd
 	}
 
+	if format == "" {
+		format = s.settings.Format
+	}
+
 	s.pendingFrames = nil
 	s.phase = phaseEncoding
 	s.mu.Unlock()
 
 	s.tray.SetLabel("Saving…")
 	s.broadcast()
-	go s.encodeAndSave(trimmed, end)
+	go s.encodeAndSave(trimmed, end, format)
 	return nil
 }
 
@@ -573,29 +612,47 @@ func (s *GifService) DiscardReview() {
 	s.broadcast()
 }
 
-func (s *GifService) encodeAndSave(frames []Frame, end time.Time) {
+func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string) {
 	s.mu.Lock()
 	fps, dir, dither := s.settings.FPS, s.settings.OutputDir, s.settings.Dither
+	if format == "" {
+		format = s.settings.Format
+	}
 	s.mu.Unlock()
+
+	if format == "" {
+		format = "gif"
+	}
+	format = strings.ToLower(format)
 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		s.fail(err)
 		return
 	}
-	path := filepath.Join(dir, defaultName())
-	f, err := os.Create(path)
-	if err != nil {
-		s.fail(err)
-		return
+	path := filepath.Join(dir, defaultNameWithExt("."+format))
+
+	// Pre-populate the thumbnail cache with a PNG of the first frame
+	if len(frames) > 0 && frames[0].Img != nil {
+		first := frames[0].Img
+		const maxW = 480
+		thumbImg := first
+		if first.Bounds().Dx() > maxW {
+			h := max(1, first.Bounds().Dy()*maxW/first.Bounds().Dx())
+			thumbImg = boxScale(first, maxW, h)
+		}
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, thumbImg); err == nil {
+			s.thumbs.put(path, buf.Bytes())
+		}
 	}
+
 	lastPct := -1
-	_, err = EncodeGIF(f, frames, end, fps, dither, func(i, n int) {
+	err := EncodeExport(path, format, frames, end, fps, dither, func(i, n int) {
 		if pct := i * 100 / n; pct != lastPct {
 			lastPct = pct
 			s.app.Event.Emit("encode", pct)
 		}
 	})
-	f.Close()
 	if err != nil {
 		os.Remove(path)
 		s.fail(err)
@@ -604,12 +661,36 @@ func (s *GifService) encodeAndSave(frames []Frame, end time.Time) {
 
 	s.mu.Lock()
 	s.phase = phaseIdle
+	autoCopy := s.settings.AutoCopy
 	s.mu.Unlock()
+
+	fileName := filepath.Base(path)
 	s.tray.SetLabel("")
 	s.broadcast()
-	s.app.Event.Emit("library", filepath.Base(path))
+	s.app.Event.Emit("library", fileName)
 	playSound("Pop")
+
+	if autoCopy {
+		_ = s.CopyFile(fileName)
+		showNotification("Gifkite", fmt.Sprintf("Recording saved & copied to clipboard (%s)", fileName))
+	} else {
+		showNotification("Gifkite", fmt.Sprintf("Recording saved to %s", fileName))
+	}
+
 	s.tray.ShowWindow() // like Gifox: pop the new recording up
+}
+
+func showNotification(title, message string) {
+	switch runtime.GOOS {
+	case "darwin":
+		script := fmt.Sprintf(`display notification %q with title %q sound name "Pop"`, message, title)
+		_ = exec.Command("osascript", "-e", script).Start()
+	case "windows":
+		psCmd := fmt.Sprintf(`[reflection.assembly]::loadwithpartialname('System.Windows.Forms') | Out-Null; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.BalloonTipTitle = %q; $n.BalloonTipText = %q; $n.Visible = $True; $n.ShowBalloonTip(3000)`, title, message)
+		_ = exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd).Start()
+	default:
+		_ = exec.Command("notify-send", title, message).Start()
+	}
 }
 
 // ---- geometry ----

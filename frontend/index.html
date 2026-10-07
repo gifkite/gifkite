@@ -11,6 +11,12 @@
 <body>
 <main class="pop">
 
+  <!-- Ambient background glow mesh matching docs -->
+  <div class="bg-glow-wrapper" aria-hidden="true">
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+  </div>
+
   <!-- permission banner -->
   <div class="perm-banner" id="perm-banner" hidden>
     <div class="perm-content">
@@ -25,6 +31,11 @@
 
   <!-- idle: capture buttons + Start Recording button -->
   <section class="capture-box" data-show="idle">
+    <div class="engine-badge-pill" id="engine-badge">
+      <span class="beacon-dot"></span>
+      <span id="engine-badge-label">Hardware SCK Engine • 60 FPS</span>
+    </div>
+
     <div class="mode-grid">
       <button class="mode-card active" id="mode-window" data-mode="window" title="Snap to and record an app window">
         <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="3"/><path d="M4 12h24M8 9h.01M12 9h.01M16 9h.01"/></svg>
@@ -55,7 +66,7 @@
   <section class="live-box" data-show="recording countdown paused" hidden>
     <div class="live-header">
       <div class="live-status">
-        <span class="dot" id="live-dot"></span>
+        <span class="beacon-dot" id="live-dot"></span>
         <span id="live-phase">RECORDING</span>
       </div>
       <span class="num timer" id="timer">0:00</span>
@@ -67,83 +78,191 @@
     </div>
   </section>
 
-  <!-- review / trim editor -->
+  <!-- review / trim editor studio -->
   <section class="review-box" data-show="review" hidden>
-    <div class="review-header">
+    <div class="review-top-bar">
       <div class="review-title-group">
         <span class="review-badge">TRIM & REVIEW</span>
         <span class="review-dur num" id="review-dur">0.0s</span>
       </div>
-      <span class="review-frames num" id="review-frames">0 frames</span>
-    </div>
-
-    <div class="review-player">
-      <img id="review-img" alt="Preview frame" draggable="false">
-      <button class="review-play-btn" id="review-play-btn" title="Play / Pause preview">
-        <svg id="play-icon" viewBox="0 0 24 24"><polygon points="7 4 19 12 7 20 7 4"/></svg>
-        <svg id="pause-icon" viewBox="0 0 24 24" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      </button>
-      <span class="review-frame-badge num" id="review-frame-badge">1 / 1</span>
-    </div>
-
-    <div class="timeline-wrap">
-      <div class="timeline-bar">
-        <div class="timeline-range" id="timeline-range"></div>
-        <div class="timeline-needle" id="timeline-needle"></div>
-      </div>
-      <div class="trim-inputs">
-        <input type="range" id="trim-start" min="0" max="0" value="0" step="1">
-        <input type="range" id="trim-end" min="0" max="0" value="0" step="1">
+      <div class="review-meta-group">
+        <div class="speed-btns" id="speed-btns">
+          <button data-spd="1" class="on">1x</button>
+          <button data-spd="1.5">1.5x</button>
+          <button data-spd="2">2x</button>
+        </div>
+        <span class="review-frames num" id="review-frames">0 frames</span>
       </div>
     </div>
 
-    <div class="review-actions">
-      <button class="ghost" id="review-discard-btn">Discard</button>
-      <button class="review-save-btn" id="review-save-btn">
-        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
-        Save GIF
+    <!-- Main Viewport Player Stage -->
+    <div class="review-stage">
+      <div class="review-player" id="review-player">
+        <img id="review-img" alt="Preview frame" draggable="false">
+        <canvas id="review-canvas" class="review-canvas"></canvas>
+        <button class="review-play-btn" id="review-play-btn" title="Play / Pause preview">
+          <svg id="play-icon" viewBox="0 0 24 24"><polygon points="7 4 19 12 7 20 7 4"/></svg>
+          <svg id="pause-icon" viewBox="0 0 24 24" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <span class="review-frame-badge num" id="review-frame-badge">1 / 1</span>
+      </div>
+    </div>
+
+    <!-- Creative Annotation Tools Ribbon -->
+    <div class="annot-toolbar" id="annot-toolbar">
+      <div class="annot-tool-group">
+        <button type="button" class="annot-btn" data-tool="arrow" id="tool-arrow" title="Draw Arrow">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M14 8a.75.75 0 0 1-.75.75H4.56l3.22 3.22a.75.75 0 1 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06l4.5-4.5a.75.75 0 0 1 1.06 1.06L4.56 7.25h8.69A.75.75 0 0 1 14 8z" transform="rotate(180 8 8)"/>
+          </svg>
+          <span>Arrow</span>
+        </button>
+        <button type="button" class="annot-btn" data-tool="blur" id="tool-blur" title="Redact / Blur Sensitive Box">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v7A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 13.5 3h-11zm1 2h3v2h-3V5zm5 0h3v2h-3V5zm-5 4h3v2h-3V9zm5 0h3v2h-3V9z"/>
+          </svg>
+          <span>Redact</span>
+        </button>
+        <button type="button" class="annot-btn" data-tool="text" id="tool-text" title="Text Caption">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M2.5 3.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4H8.5v8.5H10a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1h1.5V4H3.5v1.5a.5.5 0 0 1-1 0v-2z"/>
+          </svg>
+          <span>Text</span>
+        </button>
+      </div>
+
+      <div class="annot-sep"></div>
+
+      <!-- Color swatches -->
+      <div class="annot-colors" id="annot-colors">
+        <button type="button" class="swatch on" data-col="#ff3b30" style="background: #ff3b30;" title="Red"></button>
+        <button type="button" class="swatch" data-col="#ffd60a" style="background: #ffd60a;" title="Yellow"></button>
+        <button type="button" class="swatch" data-col="#ffffff" style="background: #ffffff;" title="White"></button>
+        <button type="button" class="swatch" data-col="#30d158" style="background: #30d158;" title="Green"></button>
+      </div>
+
+      <div class="annot-sep"></div>
+
+      <button type="button" class="annot-clear-btn" id="annot-clear-btn" title="Clear Annotations">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Clear</span>
       </button>
+    </div>
+
+    <!-- Timeline Trimmer Deck -->
+    <div class="timeline-deck">
+      <div class="timeline-meta">
+        <div class="timeline-meta-left">
+          <span class="timeline-label">Trim Range</span>
+          <span class="timeline-range-badge num" id="timeline-range-badge">0.0s – 0.0s</span>
+        </div>
+        <div class="timeline-meta-right">
+          <span class="timeline-head-badge num" id="timeline-head-badge">Frame 1</span>
+        </div>
+      </div>
+
+      <div class="timeline-wrap">
+        <div class="timeline-bar">
+          <div class="timeline-range" id="timeline-range"></div>
+          <div class="timeline-needle" id="timeline-needle"></div>
+        </div>
+        <div class="trim-inputs">
+          <input type="range" id="trim-start" min="0" max="0" value="0" step="1">
+          <input type="range" id="trim-end" min="0" max="0" value="0" step="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Export & Save Bottom Deck -->
+    <div class="review-bottom-deck">
+      <div class="format-bar">
+        <span class="format-label">Format</span>
+        <div class="format-toggle" id="format-toggle">
+          <button type="button" data-fmt="gif" class="on">GIF</button>
+          <button type="button" data-fmt="webp">WebP</button>
+          <button type="button" data-fmt="mp4">MP4</button>
+        </div>
+      </div>
+
+      <div class="review-actions-row">
+        <button class="ghost review-discard-btn" id="review-discard-btn">Discard</button>
+        <button class="review-save-btn" id="review-save-btn">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+          </svg>
+          <span id="review-save-text">Save GIF</span>
+        </button>
+      </div>
     </div>
   </section>
 
   <!-- encoding -->
   <section class="saving" data-show="encoding" hidden>
-    <div class="saving-row"><span>Saving GIF</span><span class="num" id="pct">0%</span></div>
+    <div class="saving-row"><span>Saving Recording</span><span class="num" id="pct">0%</span></div>
     <div class="bar"><div id="bar"></div></div>
   </section>
 
   <p class="error" id="error" hidden></p>
 
-  <section class="library">
+  <section class="library" data-show="idle">
     <header class="lib-head">
-      <h2>Recent</h2>
-      <button class="link" data-act="OpenFolder">Open folder</button>
+      <div class="lib-title-group">
+        <svg class="lib-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="4"></rect>
+          <path d="M7 10l5 5 5-5"></path>
+        </svg>
+        <h2>Recent Recordings</h2>
+      </div>
+      <button class="link btn-folder" data-act="OpenFolder">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Open folder</span>
+      </button>
     </header>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" hidden>
-      <img src="/assets/gifkite-mark.svg" class="empty-mark" alt="Gifkite" width="48" height="48">
-      <p>Your GIFs show up here. Choose Window or Region, capture what you want, and drop it anywhere.</p>
+      <div class="empty-mark-wrap">
+        <img src="/assets/gifkite-mark.svg" class="empty-mark" alt="Gifkite" width="48" height="48">
+      </div>
+      <p>Your recordings show up here. Capture an app window or region and drop it anywhere.</p>
     </div>
   </section>
 
-  <footer class="foot">
-    <button class="link" id="open-settings">Settings</button>
-    <button class="link" data-act="Quit">Quit</button>
+  <footer class="foot" data-show="idle">
+    <button class="link foot-link" id="open-settings">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Settings</span>
+    </button>
+    <button class="link foot-link" data-act="Quit">Quit</button>
   </footer>
 
   <!-- settings sheet -->
   <section class="sheet" id="sheet" aria-hidden="true">
     <header class="sheet-head">
-      <h2>Settings</h2>
+      <h2>Preferences</h2>
       <button class="link" id="close-settings">Done</button>
     </header>
     <div class="field">
       <span>Frame rate</span>
       <div class="seg" data-key="fps">
-        <button data-v="10">10</button><button data-v="15">15</button><button data-v="24">24</button><button data-v="30">30</button>
+        <button data-v="10">10</button><button data-v="15">15</button><button data-v="24">24</button><button data-v="30">30</button><button data-v="60" class="btn-sck" title="Hardware SCK">60 <span class="badge-sck">SCK</span></button>
       </div>
     </div>
-    <p class="note">Higher frame rates look smoother and make bigger files.</p>
+    <p class="note">Higher frame rates look smoother and make bigger files. 60 FPS uses ScreenCaptureKit on macOS.</p>
+    <div class="field">
+      <span>Default format</span>
+      <div class="seg" data-key="format">
+        <button data-v="gif">GIF</button><button data-v="webp">WebP</button><button data-v="mp4">MP4</button>
+      </div>
+    </div>
+    <p class="note">WebP creates smaller animated files; MP4 is ideal for docs and embedding.</p>
     <div class="field">
       <span>Output size</span>
       <div class="seg" data-key="scale">
@@ -165,6 +284,11 @@
         <option value="60">1 minute</option>
         <option value="120">2 minutes</option>
         <option value="300">5 minutes</option>
+        <option value="600">10 minutes</option>
+        <option value="900">15 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="3600">1 hour</option>
+        <option value="0">No limit (manual stop)</option>
       </select>
     </div>
     <label class="field toggle">
@@ -174,6 +298,10 @@
     <label class="field toggle">
       <span>Trim & review recording before saving</span>
       <input type="checkbox" id="trim"><i></i>
+    </label>
+    <label class="field toggle">
+      <span>Auto-copy GIF to clipboard when saved</span>
+      <input type="checkbox" id="autoCopy"><i></i>
     </label>
     <label class="field toggle">
       <span>Show mouse cursor in recording</span>
@@ -200,28 +328,28 @@
     </div>
     <div class="field">
       <span>Window capture</span>
-      <kbd>⇧⌘5</kbd>
+      <kbd class="kbd-sc" data-mac="⇧⌘5" data-other="Ctrl+Shift+5">⇧⌘5</kbd>
     </div>
     <div class="field">
       <span>Area capture</span>
-      <kbd>⇧⌘6</kbd>
+      <kbd class="kbd-sc" data-mac="⇧⌘6" data-other="Ctrl+Shift+6">⇧⌘6</kbd>
     </div>
     <div class="field">
       <span>Full screen</span>
-      <kbd>⇧⌘7</kbd>
+      <kbd class="kbd-sc" data-mac="⇧⌘7" data-other="Ctrl+Shift+7">⇧⌘7</kbd>
     </div>
     <div class="field">
       <span>Stop recording</span>
-      <kbd>⌘Esc</kbd>
+      <kbd class="kbd-sc" data-mac="⌘Esc" data-other="Ctrl+Esc">⌘Esc</kbd>
     </div>
     <div class="field">
       <span>Pause / Resume</span>
-      <kbd>⌥⌘P</kbd>
+      <kbd class="kbd-sc" data-mac="⌥⌘P" data-other="Alt+Ctrl+P">⌥⌘P</kbd>
     </div>
 
     <div class="settings-branding">
       <img src="/assets/gifkite-logo-dark.svg" alt="Gifkite" class="settings-logo" width="120">
-      <p class="settings-version">v1.0.0 • Pro Screen-to-GIF for macOS</p>
+      <p class="settings-version">v1.0.0 • Pro Screen-to-GIF</p>
     </div>
   </section>
 

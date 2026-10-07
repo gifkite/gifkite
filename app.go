@@ -42,8 +42,8 @@ func runApp() {
 	svc.popover = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:            "popover",
 		URL:             "/index.html",
-		Width:           380,
-		Height:          560,
+		Width:           410,
+		Height:          600,
 		Frameless:       true,
 		AlwaysOnTop:     true,
 		Hidden:          true,

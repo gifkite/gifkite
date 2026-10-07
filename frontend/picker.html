@@ -37,7 +37,8 @@
     position: absolute;
     width: 22px;
     height: 22px;
-    border: 3.5px solid var(--rec);
+    border: 3.5px solid var(--coral-primary);
+    filter: drop-shadow(0 0 6px var(--coral-glow));
     pointer-events: none;
   }
   #sel i:nth-child(1) { top: -3px; left: -3px; border-right: 0; border-bottom: 0; }
@@ -51,7 +52,7 @@
     width: 10px;
     height: 10px;
     background: #ffffff;
-    border: 2px solid var(--rec);
+    border: 2px solid var(--coral-primary);
     border-radius: 50%;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
     z-index: 15;
@@ -71,17 +72,22 @@
   #dims {
     position: absolute;
     left: 0;
-    top: -26px;
-    padding: 2px 7px;
-    border-radius: 5px;
-    background: var(--rec);
+    top: -28px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(14, 17, 23, 0.94);
+    border: 1px solid var(--border-accent);
     color: #fff;
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
     pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 12px var(--coral-glow);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
-  #dims.below { top: auto; bottom: -26px; }
+  #dims.below { top: auto; bottom: -28px; }
 
   /* Window snapping highlight */
   #win-hl {
@@ -248,9 +254,30 @@
     opacity: 0.45;
     font-weight: 500;
   }
-  .size-unit {
-    opacity: 0.45;
-    font-size: 11px;
+  .dlg-ratio {
+    display: flex;
+    align-items: center;
+  }
+  .ratio-select {
+    height: 26px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+  }
+  .ratio-select:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+  .ratio-select option {
+    background: #1c1d22;
+    color: #fff;
   }
 
   .dlg-actions {
@@ -280,22 +307,24 @@
 
   .btn-dlg-record {
     height: 30px;
-    padding: 0 13px;
+    padding: 0 14px;
     border-radius: 8px;
-    background: var(--rec);
+    background: linear-gradient(135deg, var(--coral-primary) 0%, var(--coral-light) 100%);
     color: #ffffff;
+    font-family: var(--font-heading);
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     gap: 7px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(229, 72, 77, 0.45);
+    box-shadow: 0 3px 12px var(--coral-glow);
     transition: all 0.12s;
   }
   .btn-dlg-record:hover {
     filter: brightness(1.1);
     transform: translateY(-0.5px);
+    box-shadow: 0 4px 16px rgba(255, 59, 92, 0.5);
   }
   .btn-dlg-record:active {
     transform: translateY(0.5px);
@@ -305,18 +334,93 @@
     height: 8px;
     border-radius: 50%;
     background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
     animation: rec-pulse 1.4s ease-in-out infinite;
   }
   @keyframes rec-pulse {
     50% { opacity: 0.4; }
   }
   .btn-dlg-record kbd {
-    font: inherit;
+    font-family: var(--font-mono);
     font-size: 11px;
     padding: 1px 5px;
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.28);
     color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Pixel Loupe Magnifier (4x Zoom) */
+  #loupe {
+    position: fixed;
+    display: none;
+    pointer-events: none;
+    z-index: 1000;
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 59, 92, 0.35);
+    background: #07090d;
+    overflow: hidden;
+  }
+  #loupe canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+  #loupe .ch-x, #loupe .ch-y {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+  }
+  #loupe .ch-x {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transform: translateY(-0.5px);
+  }
+  #loupe .ch-y {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-0.5px);
+  }
+  #loupe .center-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    margin-top: -3px;
+    border: 1.5px solid var(--coral-primary);
+    background: rgba(255, 59, 92, 0.35);
+    box-shadow: 0 0 6px var(--coral-glow);
+    border-radius: 1px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+  #loupe-badge {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(14, 17, 23, 0.94);
+    color: var(--coral-light);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.4px;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 59, 92, 0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
   }
 </style>
 </head>
@@ -324,6 +428,15 @@
 <div id="shade"></div>
 <div class="guide" id="gx"></div>
 <div class="guide" id="gy"></div>
+
+<!-- Pixel Loupe Magnifier (4x Zoom) -->
+<div id="loupe">
+  <canvas id="loupe-canvas" width="120" height="120"></canvas>
+  <div class="ch-x"></div>
+  <div class="ch-y"></div>
+  <div class="center-dot"></div>
+  <span id="loupe-badge" class="num">4x</span>
+</div>
 
 <!-- Window Snap Hover -->
 <div id="win-hl">
@@ -349,8 +462,7 @@
   <div class="h-dot h-w"  data-handle="w"></div>
 </div>
 
-<!-- Top Guide -->
-<div id="help">Click a window • Drag to select • <kbd>Space</kbd> or <kbd>Enter</kbd> to record • <kbd>⌘A</kbd> Full Screen • <kbd>Esc</kbd> Cancel</div>
+<div id="help">Click a window • Drag to select • <kbd>Space</kbd> or <kbd>Enter</kbd> to record • <kbd id="help-fs">⌘A</kbd> Full Screen • <kbd>Esc</kbd> Cancel</div>
 
 <!-- Gifox-style Floating Dialog Box -->
 <div id="dialog">
@@ -369,6 +481,17 @@
     <span class="size-x">×</span>
     <input type="number" class="size-inp num" id="inp-h" min="16" max="9999" />
     <span class="size-unit">px</span>
+  </div>
+
+  <div class="dlg-ratio">
+    <select class="ratio-select" id="ratio-select" title="Lock Aspect Ratio">
+      <option value="free">Free</option>
+      <option value="16:9">16 : 9</option>
+      <option value="4:3">4 : 3</option>
+      <option value="1:1">1 : 1</option>
+      <option value="9:16">9 : 16</option>
+      <option value="3:2">3 : 2</option>
+    </select>
   </div>
 
   <div class="dlg-sep"></div>
@@ -406,8 +529,28 @@ const dlgApp = document.getElementById("dlg-app");
 const dlgTitle = document.getElementById("dlg-title");
 const inpW = document.getElementById("inp-w");
 const inpH = document.getElementById("inp-h");
+const ratioSelect = document.getElementById("ratio-select");
 const btnCancel = document.getElementById("btn-cancel");
 const btnRecord = document.getElementById("btn-record");
+
+const loupe = document.getElementById("loupe");
+const loupeCanvas = document.getElementById("loupe-canvas");
+const loupeCtx = loupeCanvas ? loupeCanvas.getContext("2d") : null;
+const loupeBadge = document.getElementById("loupe-badge");
+let frozenImg = null;
+let selectedWinId = 0;
+
+function loadFrozenSnapshot() {
+  frozenImg = new Image();
+  frozenImg.src = "/frozen.jpg?v=" + Date.now();
+}
+loadFrozenSnapshot();
+
+const isMac = /Mac/.test(navigator.platform);
+if (!isMac) {
+  const fsKbd = document.getElementById("help-fs");
+  if (fsKbd) fsKbd.textContent = "Ctrl+A";
+}
 
 let windows = [];
 let hoveredWin = null;
@@ -419,6 +562,90 @@ let dragOrigin = null;
 let rectSnapshot = null;
 let activeHandle = null;
 
+function getActiveRatio(isShift) {
+  const val = ratioSelect ? ratioSelect.value : "free";
+  if (val && val !== "free") {
+    const parts = val.split(":").map(Number);
+    if (parts.length === 2 && parts[0] > 0 && parts[1] > 0) {
+      return parts[0] / parts[1];
+    }
+  }
+  if (isShift) {
+    if (rectSnapshot && rectSnapshot.w > 0 && rectSnapshot.h > 0) {
+      return rectSnapshot.w / rectSnapshot.h;
+    }
+    return 1; // square
+  }
+  return null;
+}
+
+function applyAspectRatio() {
+  if (!rect) return;
+  const ratio = getActiveRatio(false);
+  if (ratio) {
+    let targetH = Math.round(rect.w / ratio);
+    if (targetH > innerHeight - rect.y) {
+      targetH = innerHeight - rect.y;
+      rect.w = Math.round(targetH * ratio);
+    }
+    rect.h = targetH;
+    renderRect();
+    updateDialogPosition();
+  }
+}
+
+if (ratioSelect) {
+  ratioSelect.addEventListener("change", () => {
+    applyAspectRatio();
+  });
+}
+
+function updateLoupe(cx, cy) {
+  if (!loupe || !loupeCanvas || !loupeCtx) return;
+  if (!frozenImg || !frozenImg.complete || !frozenImg.naturalWidth) {
+    loupe.style.display = "none";
+    return;
+  }
+  loupe.style.display = "block";
+  const size = 120;
+  const offset = 24;
+  let lx = cx + offset;
+  let ly = cy + offset;
+  if (lx + size + 16 > innerWidth) lx = cx - size - offset;
+  if (ly + size + 16 > innerHeight) ly = cy - size - offset;
+  if (lx < 8) lx = 8;
+  if (ly < 8) ly = 8;
+  loupe.style.left = `${Math.round(lx)}px`;
+  loupe.style.top = `${Math.round(ly)}px`;
+
+  // 4x zoom: sample 30px square in screen space
+  const nw = frozenImg.naturalWidth;
+  const nh = frozenImg.naturalHeight;
+  const scaleX = nw / innerWidth;
+  const scaleY = nh / innerHeight;
+
+  const srcW = 30 * scaleX;
+  const srcH = 30 * scaleY;
+  const srcX = (cx * scaleX) - (srcW / 2);
+  const srcY = (cy * scaleY) - (srcH / 2);
+
+  loupeCtx.imageSmoothingEnabled = false;
+  loupeCtx.clearRect(0, 0, size, size);
+  loupeCtx.drawImage(
+    frozenImg,
+    Math.max(0, Math.min(srcX, nw - srcW)),
+    Math.max(0, Math.min(srcY, nh - srcH)),
+    srcW, srcH,
+    0, 0, size, size
+  );
+
+  if (loupeBadge) {
+    const px = Math.round(cx * devicePixelRatio);
+    const py = Math.round(cy * devicePixelRatio);
+    loupeBadge.textContent = `${px}, ${py}`;
+  }
+}
+
 function reset() {
   mode = "idle";
   rect = null;
@@ -426,6 +653,9 @@ function reset() {
   rectSnapshot = null;
   activeHandle = null;
   hoveredWin = null;
+  selectedWinId = 0;
+  if (loupe) loupe.style.display = "none";
+  if (ratioSelect) ratioSelect.value = "free";
 
   sel.style.display = "none";
   sel.classList.remove("selected");
@@ -437,9 +667,10 @@ function reset() {
 
 function finish(r) {
   const vw = innerWidth, vh = innerHeight;
+  const winId = selectedWinId;
   reset();
   if (!r || r.w < 8 || r.h < 8) return;
-  call("PickerDone", { x: r.x / vw, y: r.y / vh, w: r.w / vw, h: r.h / vh });
+  call("PickerDone", { x: r.x / vw, y: r.y / vh, w: r.w / vw, h: r.h / vh, windowId: winId });
 }
 
 function renderRect() {
@@ -464,7 +695,7 @@ function updateDialogPosition() {
     return;
   }
   dialog.classList.add("visible");
-  const dlgW = dialog.offsetWidth || 340;
+  const dlgW = dialog.offsetWidth || 380;
   const dlgH = dialog.offsetHeight || 44;
 
   // Center horizontally with the selected rectangle, clamped to screen padding
@@ -489,6 +720,7 @@ function updateDialogPosition() {
 function selectRect(newRect, info = {}) {
   rect = { ...newRect };
   mode = "selected";
+  selectedWinId = info.id || 0;
   sel.classList.add("selected");
   document.body.classList.add("has-selection");
   document.body.classList.remove("dragging");
@@ -503,6 +735,7 @@ function selectRect(newRect, info = {}) {
 
 Events.On("picker:open", (e) => {
   reset();
+  loadFrozenSnapshot();
   const data = e.data;
   if (typeof data === "object" && data !== null && data.windows) {
     windows = data.windows;
@@ -526,23 +759,37 @@ btnCancel.addEventListener("click", () => {
   reset();
 });
 
-function applySizeInput() {
+function applyWidthInput() {
   if (!rect) return;
-  const nw = Math.max(20, Math.min(innerWidth, parseInt(inpW.value) || rect.w));
-  const nh = Math.max(20, Math.min(innerHeight, parseInt(inpH.value) || rect.h));
-  rect.w = Math.min(nw, innerWidth - rect.x);
-  rect.h = Math.min(nh, innerHeight - rect.y);
+  const nw = Math.max(20, Math.min(innerWidth - rect.x, parseInt(inpW.value) || rect.w));
+  rect.w = nw;
+  const ratio = getActiveRatio(false);
+  if (ratio) {
+    rect.h = Math.min(innerHeight - rect.y, Math.round(nw / ratio));
+  }
   renderRect();
   updateDialogPosition();
 }
 
-inpW.addEventListener("change", applySizeInput);
-inpH.addEventListener("change", applySizeInput);
+function applyHeightInput() {
+  if (!rect) return;
+  const nh = Math.max(20, Math.min(innerHeight - rect.y, parseInt(inpH.value) || rect.h));
+  rect.h = nh;
+  const ratio = getActiveRatio(false);
+  if (ratio) {
+    rect.w = Math.min(innerWidth - rect.x, Math.round(nh * ratio));
+  }
+  renderRect();
+  updateDialogPosition();
+}
+
+inpW.addEventListener("change", applyWidthInput);
+inpH.addEventListener("change", applyHeightInput);
 inpW.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { applySizeInput(); inpW.blur(); }
+  if (e.key === "Enter") { applyWidthInput(); inpW.blur(); }
 });
 inpH.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { applySizeInput(); inpH.blur(); }
+  if (e.key === "Enter") { applyHeightInput(); inpH.blur(); }
 });
 
 addEventListener("mousemove", (e) => {
@@ -576,9 +823,20 @@ addEventListener("mousemove", (e) => {
   }
 
   if (mode === "drawing") {
-    const x = Math.min(dragOrigin.x, e.clientX), y = Math.min(dragOrigin.y, e.clientY);
-    const w = Math.abs(e.clientX - dragOrigin.x), h = Math.abs(e.clientY - dragOrigin.y);
-    rect = { x, y, w, h };
+    let w = Math.abs(e.clientX - dragOrigin.x);
+    let h = Math.abs(e.clientY - dragOrigin.y);
+    const ratio = getActiveRatio(e.shiftKey);
+    if (ratio) {
+      h = Math.round(w / ratio);
+    }
+    const x = e.clientX >= dragOrigin.x ? dragOrigin.x : dragOrigin.x - w;
+    const y = e.clientY >= dragOrigin.y ? dragOrigin.y : dragOrigin.y - h;
+    rect = {
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      w: Math.min(w, innerWidth - Math.max(0, x)),
+      h: Math.min(h, innerHeight - Math.max(0, y))
+    };
     renderRect();
     return;
   }
@@ -597,6 +855,7 @@ addEventListener("mousemove", (e) => {
     const dx = e.clientX - dragOrigin.x;
     const dy = e.clientY - dragOrigin.y;
     let { x, y, w, h } = rectSnapshot;
+    const ratio = getActiveRatio(e.shiftKey);
 
     if (activeHandle.includes("e")) {
       w = Math.max(20, Math.min(w + dx, innerWidth - x));
@@ -621,9 +880,23 @@ addEventListener("mousemove", (e) => {
       }
     }
 
+    if (ratio) {
+      if (activeHandle.includes("w") || activeHandle.includes("e")) {
+        h = Math.max(20, Math.min(Math.round(w / ratio), innerHeight - y));
+      } else {
+        w = Math.max(20, Math.min(Math.round(h * ratio), innerWidth - x));
+      }
+    }
+
     rect = { x, y, w, h };
     renderRect();
     updateDialogPosition();
+  }
+
+  if (mode === "drawing" || mode === "resizing") {
+    updateLoupe(e.clientX, e.clientY);
+  } else {
+    if (loupe) loupe.style.display = "none";
   }
 });
 
@@ -639,6 +912,7 @@ addEventListener("mousedown", (e) => {
       dragOrigin = { x: e.clientX, y: e.clientY };
       rectSnapshot = { ...rect };
       dialog.classList.remove("visible");
+      updateLoupe(e.clientX, e.clientY);
       return;
     }
 
@@ -662,9 +936,11 @@ addEventListener("mousedown", (e) => {
   mode = "drawing";
   document.body.classList.add("dragging");
   winHl.style.display = "none";
+  updateLoupe(e.clientX, e.clientY);
 });
 
 addEventListener("mouseup", (e) => {
+  if (loupe) loupe.style.display = "none";
   if (mode === "drawing") {
     document.body.classList.remove("dragging");
     const dist = dragOrigin ? Math.hypot(e.clientX - dragOrigin.x, e.clientY - dragOrigin.y) : 0;
@@ -673,11 +949,11 @@ addEventListener("mouseup", (e) => {
       // Clicked on a window to select it!
       selectRect(
         { x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h },
-        { appName: hoveredWin.appName || "Window", title: hoveredWin.title || "" }
+        { appName: hoveredWin.appName || "Window", title: hoveredWin.title || "", id: hoveredWin.id }
       );
     } else if (rect && rect.w >= 16 && rect.h >= 16) {
       // Finished dragging a region!
-      selectRect(rect, { appName: "Region", title: "" });
+      selectRect(rect, { appName: "Region", title: "", id: 0 });
     } else {
       reset();
     }
@@ -709,6 +985,7 @@ addEventListener("keydown", (e) => {
     if (rect && rect.w >= 8 && rect.h >= 8) {
       finish(rect);
     } else if (hoveredWin) {
+      selectedWinId = hoveredWin.id || 0;
       finish({ x: hoveredWin.x, y: hoveredWin.y, w: hoveredWin.w, h: hoveredWin.h });
     } else {
       finish({ x: 0, y: 0, w: innerWidth, h: innerHeight });

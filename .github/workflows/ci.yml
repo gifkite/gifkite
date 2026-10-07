@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test-and-build:
+  test-and-build-macos:
     name: Test & Build (macOS)
     runs-on: macos-latest
     steps:
@@ -29,3 +29,48 @@ jobs:
 
       - name: Sanity check CLI
         run: ./gifkite displays
+
+  test-and-build-windows:
+    name: Test & Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Build Windows executable
+        run: go build -ldflags="-H windowsgui" -o gifkite.exe .
+
+      - name: Sanity check CLI
+        run: .\gifkite.exe --help
+
+  test-and-build-linux:
+    name: Test & Build (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Build Linux executable
+        run: go build -o gifkite .
+
+      - name: Sanity check CLI
+        run: ./gifkite --help

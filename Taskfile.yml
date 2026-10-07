@@ -1,0 +1,48 @@
+version: '3'
+
+tasks:
+  default:
+    desc: "Run tests and build macOS app"
+    cmds:
+      - task: test
+      - task: build:mac
+
+  dev:
+    desc: "Build and launch Gifkite locally"
+    cmds:
+      - pkill -f gifkite || true
+      - task: build:mac
+      - open Gifkite.app
+      - echo "Gifkite launched! Check your macOS menu bar."
+
+  test:
+    desc: "Run all unit tests"
+    cmds:
+      - go test -v .
+
+  build:
+    desc: "Build default platform (macOS)"
+    cmds:
+      - task: build:mac
+
+  build:mac:
+    desc: "Build Gifkite.app bundle for macOS"
+    cmds:
+      - ./build-app.sh
+
+  build:windows:
+    desc: "Cross-compile standalone Windows executable (x64)"
+    cmds:
+      - GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o gifkite.exe .
+      - echo "Built gifkite.exe successfully!"
+
+  build:linux:
+    desc: "Build Linux binary (requires GTK3 / WebKitGTK dev headers)"
+    cmds:
+      - go build -ldflags="-s -w" -o gifkite .
+      - echo "Built gifkite for Linux successfully!"
+
+  clean:
+    desc: "Clean build artifacts"
+    cmds:
+      - rm -rf Gifkite.app gifkite gifkite.exe *.zip *.dmg *.tar.gz

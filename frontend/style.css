@@ -1,38 +1,96 @@
-/* Gifkite: a quiet native utility. The one loud thing is the recording
-   red, and the viewfinder corner brackets that mark "this gets captured". */
+/* Gifkite — Pro Screen-to-GIF Recorder Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
 :root {
-  --paper: #f3f4f6;
-  --card: #ffffff;
-  --ink: #17181b;
-  --muted: #6a6e76;
-  --line: rgba(20, 22, 26, 0.09);
-  --hover: rgba(20, 22, 26, 0.05);
-  --rec: #e5484d;
+  --bg-deep: #07090d;
+  --bg-surface: #0e1117;
+  --bg-elevated: #161b22;
+  --bg-card: rgba(22, 27, 34, 0.75);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(255, 59, 92, 0.35);
+
+  --coral-primary: #ff3b5c;
+  --coral-glow: rgba(255, 59, 92, 0.35);
+  --coral-light: #ff6584;
+  --amber-accent: #ff9f43;
+  --cyan-accent: #00d2d3;
+  --purple-accent: #9c88ff;
+
+  --paper: #0b0e14;
+  --card: #141820;
+  --ink: #f0f3f6;
+  --muted: #8b949e;
+  --dim: #6e7681;
+  --line: rgba(255, 255, 255, 0.08);
+  --hover: rgba(255, 255, 255, 0.05);
+
+  --rec: var(--coral-primary);
   --rec-ink: #ffffff;
   --ok: #2f9e6a;
-  --radius-lg: 12px;
-  --radius-sm: 7px;
-  font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  font-family: var(--font-sans);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-@media (prefers-color-scheme: dark) {
+
+@media (prefers-color-scheme: light) {
   :root {
-    --paper: #1c1d20;
-    --card: #26272b;
-    --ink: #ededef;
-    --muted: #9a9ea6;
-    --line: rgba(255, 255, 255, 0.08);
-    --hover: rgba(255, 255, 255, 0.06);
+    --bg-deep: #f3f5f8;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f8fafc;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-accent: rgba(255, 59, 92, 0.3);
+
+    --paper: #f4f6fa;
+    --card: #ffffff;
+    --ink: #111418;
+    --muted: #64748b;
+    --dim: #94a3b8;
+    --line: rgba(15, 23, 42, 0.08);
+    --hover: rgba(15, 23, 42, 0.04);
   }
 }
+
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; -webkit-user-select: none; cursor: default; }
-button {
-  font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: default;
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  color-scheme: dark;
 }
-button:focus-visible, select:focus-visible { outline: 2px solid var(--rec); outline-offset: 2px; }
-.num { font-variant-numeric: tabular-nums; }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: default;
+}
+button:focus-visible, select:focus-visible {
+  outline: 2px solid var(--rec);
+  outline-offset: 2px;
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+

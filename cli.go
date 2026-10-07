@@ -124,7 +124,14 @@ func parseRegion(s string) (image.Rectangle, error) {
 }
 
 func defaultName() string {
-	return "gifkite-" + time.Now().Format("2006-01-02-150405") + ".gif"
+	return defaultNameWithExt(".gif")
+}
+
+func defaultNameWithExt(ext string) string {
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+	return "gifkite-" + time.Now().Format("2006-01-02-150405") + ext
 }
 
 func fatal(err error) {

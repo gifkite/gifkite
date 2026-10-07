@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  build-release-macos:
     name: Build & Release (macOS)
     runs-on: macos-latest
     steps:
@@ -48,4 +48,66 @@ jobs:
           files: |
             Gifkite-macOS.dmg
             Gifkite-macOS.zip
+          generate_release_notes: true
+
+  build-release-windows:
+    name: Build & Release (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Build Windows executable
+        run: go build -ldflags="-H windowsgui -s -w" -o gifkite.exe .
+
+      - name: Package Windows ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path gifkite.exe -DestinationPath Gifkite-Windows-x64.zip
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Gifkite-Windows-x64.zip
+          generate_release_notes: true
+
+  build-release-linux:
+    name: Build & Release (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Build Linux executable
+        run: go build -ldflags="-s -w" -o gifkite .
+
+      - name: Package Linux tarball
+        run: |
+          tar -czvf Gifkite-Linux-x64.tar.gz gifkite
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Gifkite-Linux-x64.tar.gz
           generate_release_notes: true

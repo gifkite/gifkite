@@ -31,10 +31,14 @@ type Recording struct {
 }
 
 func isRecordingName(n string) bool {
-	return strings.HasPrefix(n, "gifkite-") && strings.HasSuffix(n, ".gif")
+	if !strings.HasPrefix(n, "gifkite-") {
+		return false
+	}
+	ext := strings.ToLower(filepath.Ext(n))
+	return ext == ".gif" || ext == ".webp" || ext == ".mp4"
 }
 
-// ListRecordings returns Gifkite's GIFs in the output folder, newest first.
+// ListRecordings returns Gifkite's recordings in the output folder, newest first.
 func (s *GifService) ListRecordings() []Recording {
 	dir := s.GetState().Settings.OutputDir
 	entries, _ := os.ReadDir(dir)
@@ -56,8 +60,14 @@ func (s *GifService) ListRecordings() []Recording {
 			Thumb:   "/thumb/" + url.PathEscape(n) + "?v=" + info.ModTime().Format("150405.000"),
 		}
 		if f, err := os.Open(filepath.Join(dir, n)); err == nil {
-			if cfg, err := gif.DecodeConfig(f); err == nil {
+			if cfg, _, err := image.DecodeConfig(f); err == nil {
 				r.Width, r.Height = cfg.Width, cfg.Height
+			} else {
+				// Fallback to gif
+				f.Seek(0, 0)
+				if gcfg, err := gif.DecodeConfig(f); err == nil {
+					r.Width, r.Height = gcfg.Width, gcfg.Height
+				}
 			}
 			f.Close()
 		}
@@ -202,7 +212,15 @@ func (s *GifService) middleware(next http.Handler) http.Handler {
 				http.NotFound(w, r)
 				return
 			}
-			w.Header().Set("Content-Type", "image/gif")
+			ext := strings.ToLower(filepath.Ext(p))
+			switch ext {
+			case ".webp":
+				w.Header().Set("Content-Type", "image/webp")
+			case ".mp4":
+				w.Header().Set("Content-Type", "video/mp4")
+			default:
+				w.Header().Set("Content-Type", "image/gif")
+			}
 			http.ServeFile(w, r, p)
 		case strings.HasPrefix(r.URL.Path, "/thumb/"):
 			p, err := s.recordingPath(strings.TrimPrefix(r.URL.Path, "/thumb/"))
@@ -223,9 +241,7 @@ func (s *GifService) middleware(next http.Handler) http.Handler {
 	})
 }
 
-// thumbCache holds a still PNG of each GIF's first frame. The list shows
-// stills and only animates the one under the pointer, which keeps a
-// popover full of GIFs from eating CPU.
+// thumbCache holds a still PNG of each recording's first frame.
 type thumbCache struct {
 	mu sync.Mutex
 	m  map[string]thumbEntry
@@ -237,6 +253,12 @@ type thumbEntry struct {
 }
 
 func newThumbCache() *thumbCache { return &thumbCache{m: map[string]thumbEntry{}} }
+
+func (c *thumbCache) put(path string, pngData []byte) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m[path] = thumbEntry{mod: time.Now(), png: pngData}
+}
 
 func (c *thumbCache) get(path string) ([]byte, error) {
 	info, err := os.Stat(path)

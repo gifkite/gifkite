@@ -172,9 +172,13 @@ async function setupReview(info) {
   }
 
   currentPlayhead = 0;
+  annotations = [];
+  setActiveTool(null);
+  setReviewFormat(state?.settings?.format || "gif");
   stopPlayback();
   updateTimelineUI();
   showFrame(0);
+  setTimeout(resizeReviewCanvas, 60);
 }
 
 function showFrame(idx) {
@@ -184,10 +188,15 @@ function showFrame(idx) {
   const img = $("review-img");
   if (img) {
     img.src = `/preview/frame?i=${idx}&t=${Date.now()}`;
+    img.onload = () => resizeReviewCanvas();
   }
   const badge = $("review-frame-badge");
   if (badge) {
     badge.textContent = `${idx + 1} / ${reviewInfo.numFrames}`;
+  }
+  const headBadge = $("timeline-head-badge");
+  if (headBadge) {
+    headBadge.textContent = `Frame ${idx + 1}`;
   }
   updateNeedle();
 }
@@ -213,11 +222,14 @@ function updateTimelineUI() {
 
   const selectedCount = endVal - startVal + 1;
   const fps = Math.max(1, reviewInfo.fps || 15);
+  const startSec = (startVal / fps).toFixed(1);
+  const endSec = (endVal / fps).toFixed(1);
   const trimmedSec = (selectedCount / fps).toFixed(1);
   const totalSec = reviewInfo.duration ? reviewInfo.duration.toFixed(1) : (reviewInfo.numFrames / fps).toFixed(1);
 
   if ($("review-dur")) $("review-dur").textContent = `${trimmedSec}s / ${totalSec}s`;
   if ($("review-frames")) $("review-frames").textContent = `${selectedCount} of ${reviewInfo.numFrames} frames`;
+  if ($("timeline-range-badge")) $("timeline-range-badge").textContent = `${startSec}s – ${endSec}s (${trimmedSec}s)`;
 
   updateNeedle();
 }
@@ -240,6 +252,19 @@ function togglePlayback() {
   }
 }
 
+let reviewSpeed = 1;
+
+function setReviewSpeed(spd) {
+  reviewSpeed = spd;
+  document.querySelectorAll("#speed-btns button").forEach((b) => {
+    b.classList.toggle("on", Number(b.dataset.spd) === spd);
+  });
+  if (isPlaying) {
+    stopPlayback();
+    startPlayback();
+  }
+}
+
 function startPlayback() {
   if (!reviewInfo || reviewInfo.numFrames <= 0) return;
   isPlaying = true;
@@ -253,7 +278,7 @@ function startPlayback() {
   }
 
   const fps = Math.max(1, reviewInfo.fps || 15);
-  const interval = Math.round(1000 / fps);
+  const interval = Math.max(16, Math.round(1000 / (fps * reviewSpeed)));
 
   clearInterval(playTimer);
   playTimer = setInterval(() => {
@@ -287,9 +312,12 @@ async function loadLibrary(highlight) {
 function card(r, fresh) {
   const el = document.createElement("div");
   el.className = "item";
+  const ext = (r.name.split(".").pop() || "gif").toUpperCase();
+  const extClass = ext.toLowerCase();
   el.innerHTML = `
     <div class="pic" title="Click to copy, double-click to open">
       <img alt="" draggable="false">
+      <span class="fmt-badge fmt-${extClass}">${ext}</span>
       <div class="acts">
         <button data-a="copy">Copy</button>
         <button data-a="reveal" title="${isMac ? "Show in Finder" : "Show in folder"}">Show</button>
@@ -382,6 +410,7 @@ function renderSettings(st) {
   $("max").value = String(st.maxSeconds);
   $("countdown").checked = st.countdown;
   if ($("trim")) $("trim").checked = st.trim !== false;
+  if ($("autoCopy")) $("autoCopy").checked = st.autoCopy !== false;
   if ($("showCursor")) $("showCursor").checked = st.showCursor !== false;
   if ($("cursorHighlight")) $("cursorHighlight").checked = st.cursorHighlight !== false;
   if ($("clickRipples")) $("clickRipples").checked = st.clickRipples !== false;
@@ -408,6 +437,7 @@ document.querySelectorAll(".seg").forEach((seg) => {
 $("max").onchange = (e) => saveSettings({ maxSeconds: Number(e.target.value) });
 $("countdown").onchange = (e) => saveSettings({ countdown: e.target.checked });
 if ($("trim")) $("trim").onchange = (e) => saveSettings({ trim: e.target.checked });
+if ($("autoCopy")) $("autoCopy").onchange = (e) => saveSettings({ autoCopy: e.target.checked });
 if ($("showCursor")) $("showCursor").onchange = (e) => saveSettings({ showCursor: e.target.checked });
 if ($("cursorHighlight")) $("cursorHighlight").onchange = (e) => saveSettings({ cursorHighlight: e.target.checked });
 if ($("clickRipples")) $("clickRipples").onchange = (e) => saveSettings({ clickRipples: e.target.checked });
@@ -479,6 +509,225 @@ if (popoverPauseBtn) {
   });
 }
 
+// ---- Annotations & Format Toggle ----
+let reviewFormat = "gif";
+let annotations = [];
+let activeTool = null;
+let activeColor = "#ff3b30";
+let isDrawingAnnotation = false;
+let currentAnnot = null;
+
+const reviewCanvas = $("review-canvas");
+const reviewCtx = reviewCanvas ? reviewCanvas.getContext("2d") : null;
+const reviewPlayer = $("review-player");
+
+function setReviewFormat(fmt) {
+  reviewFormat = fmt || "gif";
+  document.querySelectorAll("#format-toggle button").forEach((b) => {
+    b.classList.toggle("on", b.dataset.fmt === reviewFormat);
+  });
+  const txt = $("review-save-text");
+  if (txt) txt.textContent = `Save ${reviewFormat.toUpperCase()}`;
+}
+
+document.querySelectorAll("#format-toggle button").forEach((b) => {
+  b.addEventListener("click", () => {
+    setReviewFormat(b.dataset.fmt);
+  });
+});
+
+function setActiveTool(tool) {
+  if (activeTool === tool) {
+    activeTool = null;
+  } else {
+    activeTool = tool;
+  }
+  document.querySelectorAll(".annot-btn").forEach((b) => {
+    b.classList.toggle("on", b.dataset.tool === activeTool);
+  });
+  if (reviewPlayer) {
+    reviewPlayer.classList.toggle("annotating", Boolean(activeTool));
+  }
+}
+
+document.querySelectorAll(".annot-btn[data-tool]").forEach((b) => {
+  b.addEventListener("click", () => {
+    setActiveTool(b.dataset.tool);
+  });
+});
+
+document.querySelectorAll(".annot-colors .swatch").forEach((b) => {
+  b.addEventListener("click", () => {
+    activeColor = b.dataset.col;
+    document.querySelectorAll(".annot-colors .swatch").forEach((s) => s.classList.toggle("on", s === b));
+  });
+});
+
+const annotClearBtn = $("annot-clear-btn");
+if (annotClearBtn) {
+  annotClearBtn.addEventListener("click", () => {
+    annotations = [];
+    currentAnnot = null;
+    renderAnnotations();
+  });
+}
+
+function resizeReviewCanvas() {
+  if (!reviewCanvas) return;
+  const w = reviewCanvas.offsetWidth;
+  const h = reviewCanvas.offsetHeight;
+  if (w > 0 && h > 0 && (reviewCanvas.width !== w || reviewCanvas.height !== h)) {
+    reviewCanvas.width = w;
+    reviewCanvas.height = h;
+  }
+  renderAnnotations();
+}
+
+window.addEventListener("resize", resizeReviewCanvas);
+
+function renderAnnotations() {
+  if (!reviewCtx || !reviewCanvas) return;
+  const W = reviewCanvas.width;
+  const H = reviewCanvas.height;
+  reviewCtx.clearRect(0, 0, W, H);
+
+  const list = [...annotations];
+  if (currentAnnot) list.push(currentAnnot);
+
+  for (const a of list) {
+    if (a.type === "blur") {
+      const bx = a.x * W;
+      const by = a.y * H;
+      const bw = a.w * W;
+      const bh = a.h * H;
+      reviewCtx.fillStyle = "rgba(30, 32, 38, 0.88)";
+      reviewCtx.fillRect(bx, by, bw, bh);
+      reviewCtx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      reviewCtx.lineWidth = 1;
+      reviewCtx.strokeRect(bx, by, bw, bh);
+      reviewCtx.fillStyle = "#ffffff";
+      reviewCtx.font = "bold 10px -apple-system, BlinkMacSystemFont, sans-serif";
+      reviewCtx.fillText("REDACT", bx + 4, by + 13);
+    } else if (a.type === "arrow") {
+      const x1 = a.x * W;
+      const y1 = a.y * H;
+      const x2 = a.x2 * W;
+      const y2 = a.y2 * H;
+      const color = a.color || "#ff3b30";
+
+      reviewCtx.strokeStyle = color;
+      reviewCtx.lineWidth = 4;
+      reviewCtx.lineCap = "round";
+      reviewCtx.beginPath();
+      reviewCtx.moveTo(x1, y1);
+      reviewCtx.lineTo(x2, y2);
+      reviewCtx.stroke();
+
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const headLen = 14;
+      reviewCtx.fillStyle = color;
+      reviewCtx.beginPath();
+      reviewCtx.moveTo(x2, y2);
+      reviewCtx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+      reviewCtx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+      reviewCtx.closePath();
+      reviewCtx.fill();
+    } else if (a.type === "text") {
+      const tx = a.x * W;
+      const ty = a.y * H;
+      reviewCtx.font = "bold 13px -apple-system, BlinkMacSystemFont, sans-serif";
+      const metrics = reviewCtx.measureText(a.text);
+      const pw = metrics.width + 12;
+      const ph = 22;
+
+      reviewCtx.fillStyle = "rgba(0, 0, 0, 0.82)";
+      reviewCtx.beginPath();
+      if (typeof reviewCtx.roundRect === "function") {
+        reviewCtx.roundRect(tx - 6, ty - 15, pw, ph, 4);
+      } else {
+        reviewCtx.rect(tx - 6, ty - 15, pw, ph);
+      }
+      reviewCtx.fill();
+
+      reviewCtx.fillStyle = a.color || "#ffffff";
+      reviewCtx.fillText(a.text, tx, ty);
+    }
+  }
+}
+
+if (reviewCanvas) {
+  reviewCanvas.addEventListener("pointerdown", (e) => {
+    if (!activeTool) return;
+    const b = reviewCanvas.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - b.left) / b.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - b.top) / b.height));
+
+    if (activeTool === "text") {
+      const val = prompt("Enter caption text:");
+      if (val && val.trim()) {
+        annotations.push({
+          type: "text",
+          x: nx,
+          y: ny,
+          text: val.trim(),
+          color: activeColor,
+        });
+        renderAnnotations();
+      }
+      return;
+    }
+
+    isDrawingAnnotation = true;
+    currentAnnot = {
+      type: activeTool,
+      x: nx,
+      y: ny,
+      x2: nx,
+      y2: ny,
+      w: 0,
+      h: 0,
+      color: activeColor,
+    };
+  });
+
+  window.addEventListener("pointermove", (e) => {
+    if (!isDrawingAnnotation || !currentAnnot || !reviewCanvas) return;
+    const b = reviewCanvas.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - b.left) / b.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - b.top) / b.height));
+
+    if (currentAnnot.type === "arrow") {
+      currentAnnot.x2 = nx;
+      currentAnnot.y2 = ny;
+    } else if (currentAnnot.type === "blur") {
+      const x0 = currentAnnot.x0 !== undefined ? currentAnnot.x0 : currentAnnot.x;
+      const y0 = currentAnnot.y0 !== undefined ? currentAnnot.y0 : currentAnnot.y;
+      currentAnnot.x0 = x0;
+      currentAnnot.y0 = y0;
+      currentAnnot.x = Math.min(x0, nx);
+      currentAnnot.y = Math.min(y0, ny);
+      currentAnnot.w = Math.abs(nx - x0);
+      currentAnnot.h = Math.abs(ny - y0);
+    }
+    renderAnnotations();
+  });
+
+  window.addEventListener("pointerup", () => {
+    if (isDrawingAnnotation && currentAnnot) {
+      isDrawingAnnotation = false;
+      const isArrow = currentAnnot.type === "arrow" && (Math.abs(currentAnnot.x2 - currentAnnot.x) > 0.02 || Math.abs(currentAnnot.y2 - currentAnnot.y) > 0.02);
+      const isBlur = currentAnnot.type === "blur" && currentAnnot.w > 0.02 && currentAnnot.h > 0.02;
+      if (isArrow || isBlur) {
+        delete currentAnnot.x0;
+        delete currentAnnot.y0;
+        annotations.push(currentAnnot);
+      }
+      currentAnnot = null;
+      renderAnnotations();
+    }
+  });
+}
+
 const trimStart = $("trim-start");
 if (trimStart) {
   trimStart.addEventListener("input", (e) => {
@@ -523,7 +772,7 @@ if (reviewSaveBtn) {
     const startVal = Number($("trim-start")?.value || 0);
     const endVal = Number($("trim-end")?.value || 0);
     try {
-      await call("ConfirmReview", startVal, endVal);
+      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations);
     } catch (err) {
       toast(String(err.message || err));
     }
@@ -538,6 +787,49 @@ if (reviewDiscardBtn) {
   });
 }
 
+document.querySelectorAll("#speed-btns button").forEach((b) => {
+  b.addEventListener("click", () => {
+    setReviewSpeed(Number(b.dataset.spd));
+  });
+});
+
+const timelineBar = document.querySelector(".timeline-bar");
+if (timelineBar) {
+  function seekFromBarEvent(e) {
+    if (!reviewInfo || reviewInfo.numFrames <= 0) return;
+    const b = timelineBar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - b.left) / b.width));
+    const targetIdx = Math.round(ratio * (reviewInfo.numFrames - 1));
+    stopPlayback();
+    showFrame(targetIdx);
+  }
+  timelineBar.addEventListener("click", seekFromBarEvent);
+}
+
+window.addEventListener("keydown", (e) => {
+  if (state?.phase === "review") {
+    if (e.target && e.target.tagName === "INPUT") return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      togglePlayback();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      stopPlayback();
+      showFrame(currentPlayhead - 1);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stopPlayback();
+      showFrame(currentPlayhead + 1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      reviewSaveBtn?.click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      reviewDiscardBtn?.click();
+    }
+  }
+});
+
 document.querySelectorAll("[data-act]").forEach((b) => {
   b.addEventListener("click", () => call(b.dataset.act));
 });
@@ -551,7 +843,10 @@ Events.On("tick", (e) => {
 });
 Events.On("countdown", (e) => { if (e.data > 0) $("timer").textContent = `Starting in ${e.data}`; });
 Events.On("encode", (e) => setPct(e.data));
-Events.On("library", (e) => loadLibrary(e.data));
+Events.On("library", (e) => {
+  loadLibrary(e.data);
+  toast(state?.settings?.autoCopy !== false ? "Saved & copied to clipboard!" : "Recording saved!");
+});
 
 // The popover is hidden rather than closed, so refresh whenever it's shown.
 document.addEventListener("visibilitychange", async () => {
@@ -571,6 +866,21 @@ window.addEventListener("focus", () => {
 });
 
 async function init() {
+  const engineBadgeLabel = $("engine-badge-label");
+  if (engineBadgeLabel) {
+    if (isMac) {
+      engineBadgeLabel.textContent = "Hardware SCK Engine • 60 FPS";
+    } else if (/Win/.test(navigator.platform)) {
+      engineBadgeLabel.textContent = "Hardware DWM Engine • Native";
+    } else {
+      engineBadgeLabel.textContent = "Hardware XGB Engine • Native";
+    }
+  }
+  if (!isMac) {
+    document.querySelectorAll(".kbd-sc").forEach((k) => {
+      if (k.dataset.other) k.textContent = k.dataset.other;
+    });
+  }
   updateModeUI();
   document.querySelector(".pop")?.scrollTo(0, 0);
   try {
