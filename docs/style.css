@@ -56,43 +56,46 @@ body {
 
 /* Background Ambient Meshes */
 .bg-glow-wrapper {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
   max-width: 100vw;
-  contain: strict;
+  contain: paint;
 }
 
 .glow-orb-1 {
   position: absolute;
-  top: -150px;
-  left: 20%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(255, 59, 92, 0.15) 0%, transparent 70%);
-  filter: blur(80px);
+  top: -120px;
+  left: 15%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(255, 59, 92, 0.16) 0%, rgba(255, 59, 92, 0.04) 45%, transparent 70%);
+  pointer-events: none;
 }
 
 .glow-orb-2 {
   position: absolute;
-  top: 40%;
-  right: -100px;
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(156, 136, 255, 0.12) 0%, transparent 70%);
-  filter: blur(100px);
+  top: 35%;
+  right: -80px;
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, rgba(156, 136, 255, 0.14) 0%, rgba(156, 136, 255, 0.03) 45%, transparent 70%);
+  pointer-events: none;
 }
 
 .glow-orb-3 {
   position: absolute;
-  bottom: 10%;
-  left: -150px;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, rgba(0, 210, 211, 0.08) 0%, transparent 70%);
-  filter: blur(120px);
+  bottom: 12%;
+  left: -120px;
+  width: 620px;
+  height: 620px;
+  background: radial-gradient(circle, rgba(0, 210, 211, 0.1) 0%, rgba(0, 210, 211, 0.02) 45%, transparent 70%);
+  pointer-events: none;
 }
 
 /* Nav */
@@ -195,14 +198,14 @@ header.site-nav {
   width: 84px;
   height: 84px;
   border-radius: 20px;
-  filter: drop-shadow(0 16px 36px rgba(184, 108, 214, 0.38)) drop-shadow(0 4px 12px rgba(255, 118, 86, 0.28));
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 14px 32px rgba(184, 108, 214, 0.35), 0 4px 12px rgba(255, 118, 86, 0.25);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   animation: hero-float 4.5s ease-in-out infinite;
 }
 
 .hero-app-icon:hover {
   transform: translateY(-6px) scale(1.06);
-  filter: drop-shadow(0 22px 48px rgba(184, 108, 214, 0.5)) drop-shadow(0 8px 18px rgba(255, 118, 86, 0.35));
+  box-shadow: 0 20px 42px rgba(184, 108, 214, 0.45), 0 6px 16px rgba(255, 118, 86, 0.32);
 }
 
 @keyframes hero-float {
@@ -980,6 +983,17 @@ footer.site-footer {
   .docs-code-block pre { padding: 0.85rem; font-size: 0.78rem; }
   
   .footer-content { flex-direction: column; text-align: center; gap: 1rem; }
+
+  /* Disable heavy backdrop-filter compositing layers on mobile to prevent iOS Safari jetsam/GPU crashes */
+  .feature-card,
+  .demo-display-panel,
+  .shortcuts-table-wrapper,
+  .hero-pill-item,
+  .interactive-viewfinder {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #0f131a;
+  }
 }
 
 /* Feature Badges & Chips in Hero */

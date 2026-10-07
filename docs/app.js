@@ -51,6 +51,13 @@ function initTabs() {
       const targetView = document.getElementById(targetId);
       if (targetView) targetView.classList.add('active');
 
+      if (targetId === 'demo-ripples') {
+        if (typeof resizeRipple === 'function') resizeRipple();
+        if (typeof startRippleLoop === 'function') startRippleLoop();
+      } else {
+        if (typeof stopRippleLoop === 'function') stopRippleLoop();
+      }
+
       // Allow display:block to resolve geometry before rendering canvas
       setTimeout(() => {
         if (targetId === 'demo-loupe' && typeof renderLoupeBase === 'function') {
@@ -59,8 +66,6 @@ function initTabs() {
           renderDitherDemo();
         } else if (targetId === 'demo-annot' && typeof renderAnnotBase === 'function') {
           renderAnnotBase();
-        } else if (targetId === 'demo-ripples' && typeof resizeRipple === 'function') {
-          resizeRipple();
         }
       }, 30);
     });
@@ -152,13 +157,11 @@ function initDitheringDemo() {
       renderDitherDemo();
     });
   });
-
-  renderDitherDemo();
 }
 
 function renderDitherDemo() {
   const canvas = document.getElementById('dither-canvas');
-  if (!canvas) return;
+  if (!canvas || !canvas.offsetParent) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width = 600;
   const h = canvas.height = 240;
@@ -228,6 +231,9 @@ function quantizeStep(val, step) {
 
 // 5. Cursor Spotlight & Click Ripple Sandbox
 let resizeRipple = null;
+let startRippleLoop = null;
+let stopRippleLoop = null;
+
 function initRippleSandbox() {
   const canvas = document.getElementById('ripple-canvas');
   if (!canvas) return;
@@ -237,6 +243,7 @@ function initRippleSandbox() {
   function resize() {
     canvas.width = canvas.parentElement ? (canvas.parentElement.clientWidth || 320) : 320;
     canvas.height = 320;
+    drawFrame();
   }
   resizeRipple = resize;
   resize();
@@ -244,6 +251,8 @@ function initRippleSandbox() {
 
   let mouse = { x: canvas.width / 2, y: canvas.height / 2, active: false };
   let ripples = [];
+  let isLooping = false;
+  let rafId = null;
 
   function spawnRipple(clientX, clientY, isRight = false) {
     const rect = canvas.getBoundingClientRect();
@@ -260,6 +269,8 @@ function initRippleSandbox() {
       opacity: 0.9,
       color: isRight ? '#ff9f43' : '#ff3b5c'
     });
+
+    if (!isLooping) start();
   }
 
   canvas.addEventListener('pointermove', (e) => {
@@ -267,6 +278,7 @@ function initRippleSandbox() {
     mouse.x = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
     mouse.y = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
     mouse.active = true;
+    if (!isLooping) start();
   });
 
   canvas.addEventListener('pointerdown', (e) => {
@@ -275,23 +287,22 @@ function initRippleSandbox() {
 
   canvas.addEventListener('pointerup', () => {
     setTimeout(() => {
-      if (ripples.length === 0) mouse.active = false;
+      if (ripples.length === 0) {
+        mouse.active = false;
+        drawFrame();
+      }
     }, 1200);
   });
 
   canvas.addEventListener('pointerleave', () => {
     mouse.active = false;
+    drawFrame();
   });
 
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-  function loop() {
-    // Battery & CPU optimization on mobile phones: skip loop when tab/element is hidden
-    if (!canvas.offsetParent) {
-      requestAnimationFrame(loop);
-      return;
-    }
-
+  function drawFrame() {
+    if (!canvas.offsetParent) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw grid lines
@@ -316,7 +327,6 @@ function initRippleSandbox() {
       }
 
       ctx.save();
-      // Outer ring
       ctx.beginPath();
       ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
       ctx.strokeStyle = r.color;
@@ -324,14 +334,12 @@ function initRippleSandbox() {
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Inner faint ring
       ctx.beginPath();
       ctx.arc(r.x, r.y, r.radius * 0.5, 0, Math.PI * 2);
       ctx.strokeStyle = r.color;
       ctx.globalAlpha = r.opacity * 0.5;
       ctx.lineWidth = 1.5;
       ctx.stroke();
-
       ctx.restore();
     }
 
@@ -360,14 +368,42 @@ function initRippleSandbox() {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-
       ctx.restore();
     }
-
-    requestAnimationFrame(loop);
   }
 
-  loop();
+  function loop() {
+    if (!isLooping || !canvas.offsetParent) {
+      isLooping = false;
+      return;
+    }
+    drawFrame();
+    if (ripples.length > 0 || mouse.active) {
+      rafId = requestAnimationFrame(loop);
+    } else {
+      isLooping = false;
+    }
+  }
+
+  function start() {
+    if (isLooping) return;
+    isLooping = true;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function stop() {
+    isLooping = false;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  startRippleLoop = () => {
+    resize();
+    start();
+  };
+  stopRippleLoop = stop;
 }
 
 // 6. Trim & Review Timeline Simulator
@@ -477,12 +513,25 @@ function initLoupeDemo() {
     if (ctxLens) {
       ctxLens.imageSmoothingEnabled = false;
       ctxLens.clearRect(0, 0, 110, 110);
+
+      const scaleX = baseCanvas.width / rect.width;
+      const scaleY = baseCanvas.height / rect.height;
+      const bmpX = x * scaleX;
+      const bmpY = y * scaleY;
       const srcSize = 28;
-      ctxLens.drawImage(
-        baseCanvas,
-        x - srcSize / 2, y - srcSize / 2, srcSize, srcSize,
-        0, 0, 110, 110
-      );
+      const half = srcSize / 2;
+
+      // Strictly clamp coordinates inside source canvas to prevent WebKit IndexSizeError
+      const sx = Math.max(0, Math.min(Math.max(0, baseCanvas.width - srcSize), bmpX - half));
+      const sy = Math.max(0, Math.min(Math.max(0, baseCanvas.height - srcSize), bmpY - half));
+
+      try {
+        ctxLens.drawImage(
+          baseCanvas,
+          sx, sy, srcSize, srcSize,
+          0, 0, 110, 110
+        );
+      } catch (_) {}
 
       // Render subtle pixel grid
       ctxLens.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -644,7 +693,6 @@ function initAnnotationsDemo() {
     { type: 'blur', x: 220, y: 135, w: 230, h: 26 },
     { type: 'arrow', x1: 520, y1: 80, x2: 440, y2: 195, text: 'Click to Deploy' }
   ];
-  renderAnnotBase();
 }
 
 function applySampleAnnotation(tool) {
@@ -662,7 +710,7 @@ function applySampleAnnotation(tool) {
 
 function renderAnnotBase() {
   const canvas = document.getElementById('annot-canvas');
-  if (!canvas) return;
+  if (!canvas || !canvas.offsetParent) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width = canvas.parentElement ? (canvas.parentElement.clientWidth || 320) : 320;
   const h = canvas.height = 300;
