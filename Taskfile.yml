@@ -37,7 +37,7 @@ tasks:
       - echo "Built gifkite.exe successfully!"
 
   build:linux:
-    desc: "Build Linux binary (requires GTK3 / WebKitGTK dev headers)"
+    desc: "Build Linux binary (requires GTK4 / WebKitGTK 6.0 dev headers)"
     cmds:
       - go build -ldflags="-s -w" -o gifkite .
       - echo "Built gifkite for Linux successfully!"
