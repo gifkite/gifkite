@@ -19,7 +19,7 @@ env:
 
 jobs:
   build-release-macos:
-    name: Build & Release (macOS)
+    name: Build & Package (macOS)
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -40,28 +40,24 @@ jobs:
 
       - name: Package DMG & ZIP
         run: |
-          # Create a drag-and-drop installer disk image
           mkdir -p dmg_root
           cp -R Gifkite.app dmg_root/
           ln -s /Applications dmg_root/Applications
           hdiutil create -volname "Gifkite" -srcfolder dmg_root -ov -format UDZO Gifkite-macOS.dmg
           rm -rf dmg_root
 
-          # Also package standalone ZIP
           ditto -c -k --sequesterRsrc --keepParent Gifkite.app Gifkite-macOS.zip
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: Release ${{ env.RELEASE_VERSION }}
-          files: |
+          name: macos-artifacts
+          path: |
             Gifkite-macOS.dmg
             Gifkite-macOS.zip
-          generate_release_notes: true
 
   build-release-windows:
-    name: Build & Release (Windows)
+    name: Build & Package (Windows)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -82,17 +78,14 @@ jobs:
         run: |
           Compress-Archive -Path gifkite.exe -DestinationPath Gifkite-Windows-x64.zip
 
-      - name: Create / Update GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: Release ${{ env.RELEASE_VERSION }}
-          files: |
-            Gifkite-Windows-x64.zip
-          generate_release_notes: true
+          name: windows-artifacts
+          path: Gifkite-Windows-x64.zip
 
   build-release-linux:
-    name: Build & Release (Linux)
+    name: Build & Package (Linux)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -117,11 +110,45 @@ jobs:
         run: |
           tar -czvf Gifkite-Linux-x64.tar.gz gifkite
 
-      - name: Create / Update GitHub Release
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: Gifkite-Linux-x64.tar.gz
+
+  publish-release:
+    name: Tag & Publish Release
+    needs: [build-release-macos, build-release-windows, build-release-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure Git tag exists
+        run: |
+          TAG="${{ env.RELEASE_VERSION }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Git tag $TAG already exists in repository."
+          else
+            echo "Creating and pushing git tag $TAG..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish Official GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
-          files: |
-            Gifkite-Linux-x64.tar.gz
+          files: release-assets/*
           generate_release_notes: true
