@@ -4,8 +4,11 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-echo "Building gifkite binary..."
-go build -tags private_mac_apis -o gifkite .
+VERSION="${1:-${VERSION:-1.0.0}}"
+BUNDLE_VERSION="${VERSION#v}"
+
+echo "Building gifkite binary (version: $VERSION)..."
+go build -tags private_mac_apis -ldflags="-X main.Version=$VERSION -s -w" -o gifkite .
 
 APP="Gifkite.app"
 echo "Packaging $APP bundle..."
@@ -17,7 +20,7 @@ if [ -f "assets/AppIcon.icns" ]; then
     cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 fi
 
-cat << 'EOF' > "$APP/Contents/Info.plist"
+cat << EOF > "$APP/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -35,9 +38,9 @@ cat << 'EOF' > "$APP/Contents/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>$BUNDLE_VERSION</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>$BUNDLE_VERSION</string>
     <key>LSMinimumSystemVersion</key>
     <string>11.0</string>
     <key>LSUIElement</key>

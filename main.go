@@ -5,7 +5,13 @@
 //	gifkite displays         list displays and their bounds
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
+
+// Version is populated at compile time via -ldflags "-X main.Version=vX.Y.Z"
+var Version = "dev"
 
 func main() {
 	if len(os.Args) > 1 {
@@ -15,6 +21,9 @@ func main() {
 			return
 		case "displays":
 			cmdDisplays()
+			return
+		case "version", "-v", "--version":
+			fmt.Printf("gifkite %s\n", Version)
 			return
 		case "-h", "--help", "help":
 			usage()

@@ -28,7 +28,7 @@ jobs:
         run: go test -v .
 
       - name: Build Gifkite.app bundle
-        run: ./build-app.sh
+        run: ./build-app.sh "${{ github.ref_name }}"
 
       - name: Package DMG & ZIP
         run: |
@@ -65,7 +65,7 @@ jobs:
           cache: true
 
       - name: Build Windows executable
-        run: go build -ldflags="-H windowsgui -s -w" -o gifkite.exe .
+        run: go build -ldflags="-H windowsgui -s -w -X main.Version=${{ github.ref_name }}" -o gifkite.exe .
 
       - name: Package Windows ZIP
         shell: pwsh
@@ -99,7 +99,7 @@ jobs:
           cache: true
 
       - name: Build Linux executable
-        run: go build -ldflags="-s -w" -o gifkite .
+        run: go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o gifkite .
 
       - name: Package Linux tarball
         run: |
