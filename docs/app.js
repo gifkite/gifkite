@@ -51,13 +51,18 @@ function initTabs() {
       const targetView = document.getElementById(targetId);
       if (targetView) targetView.classList.add('active');
 
-      if (targetId === 'demo-loupe' && typeof renderLoupeBase === 'function') {
-        renderLoupeBase();
-      } else if (targetId === 'demo-dither' && typeof renderDitherDemo === 'function') {
-        renderDitherDemo();
-      } else if (targetId === 'demo-annot' && typeof renderAnnotBase === 'function') {
-        renderAnnotBase();
-      }
+      // Allow display:block to resolve geometry before rendering canvas
+      setTimeout(() => {
+        if (targetId === 'demo-loupe' && typeof renderLoupeBase === 'function') {
+          renderLoupeBase();
+        } else if (targetId === 'demo-dither' && typeof renderDitherDemo === 'function') {
+          renderDitherDemo();
+        } else if (targetId === 'demo-annot' && typeof renderAnnotBase === 'function') {
+          renderAnnotBase();
+        } else if (targetId === 'demo-ripples' && typeof resizeRipple === 'function') {
+          resizeRipple();
+        }
+      }, 30);
     });
   });
 }
@@ -222,37 +227,31 @@ function quantizeStep(val, step) {
 }
 
 // 5. Cursor Spotlight & Click Ripple Sandbox
+let resizeRipple = null;
 function initRippleSandbox() {
   const canvas = document.getElementById('ripple-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  canvas.style.touchAction = 'none';
 
   function resize() {
-    canvas.width = canvas.parentElement.clientWidth;
+    canvas.width = canvas.parentElement ? (canvas.parentElement.clientWidth || 320) : 320;
     canvas.height = 320;
   }
+  resizeRipple = resize;
   resize();
   window.addEventListener('resize', resize);
 
   let mouse = { x: canvas.width / 2, y: canvas.height / 2, active: false };
   let ripples = [];
 
-  canvas.addEventListener('mousemove', (e) => {
+  function spawnRipple(clientX, clientY, isRight = false) {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left;
-    mouse.y = e.clientY - rect.top;
+    const x = Math.max(0, Math.min(canvas.width, clientX - rect.left));
+    const y = Math.max(0, Math.min(canvas.height, clientY - rect.top));
+    mouse.x = x;
+    mouse.y = y;
     mouse.active = true;
-  });
-
-  canvas.addEventListener('mouseleave', () => {
-    mouse.active = false;
-  });
-
-  canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const isRight = e.button === 2;
 
     ripples.push({
       x, y,
@@ -261,11 +260,38 @@ function initRippleSandbox() {
       opacity: 0.9,
       color: isRight ? '#ff9f43' : '#ff3b5c'
     });
+  }
+
+  canvas.addEventListener('pointermove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
+    mouse.y = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
+    mouse.active = true;
+  });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    spawnRipple(e.clientX, e.clientY, e.button === 2);
+  });
+
+  canvas.addEventListener('pointerup', () => {
+    setTimeout(() => {
+      if (ripples.length === 0) mouse.active = false;
+    }, 1200);
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    mouse.active = false;
   });
 
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 
   function loop() {
+    // Battery & CPU optimization on mobile phones: skip loop when tab/element is hidden
+    if (!canvas.offsetParent) {
+      requestAnimationFrame(loop);
+      return;
+    }
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw grid lines
@@ -372,13 +398,41 @@ function initTrimTimeline() {
     const totalFrames = 120;
     const startF = Math.round((leftPct / 100) * totalFrames);
     const endF = Math.round((rightPct / 100) * totalFrames);
-    const count = endF - startF;
+    const count = Math.max(1, endF - startF);
     const dur = (count / 15).toFixed(1);
 
     if (info) {
       info.textContent = `Frames: ${startF} → ${endF} (${count} frames, ${dur}s loop at 15 FPS)`;
     }
   }
+
+  function handleDrag(handle, isLeft) {
+    let dragging = false;
+    handle.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      e.preventDefault();
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const rect = container.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      if (isLeft) {
+        leftPct = Math.min(pct, rightPct - 5);
+      } else {
+        rightPct = Math.max(pct, leftPct + 5);
+      }
+      update();
+    });
+
+    const stopDrag = () => { dragging = false; };
+    window.addEventListener('pointerup', stopDrag);
+    window.addEventListener('pointercancel', stopDrag);
+  }
+
+  handleDrag(leftHandle, true);
+  handleDrag(rightHandle, false);
 
   update();
 }
@@ -392,6 +446,7 @@ function initLoupeDemo() {
   const coords = document.getElementById('loupe-coords');
 
   if (!container || !baseCanvas || !lens || !lensCanvas) return;
+  container.style.touchAction = 'none';
 
   renderLoupeBase();
   window.addEventListener('resize', renderLoupeBase);
@@ -401,6 +456,7 @@ function initLoupeDemo() {
 
   function updateLens(clientX, clientY) {
     const rect = baseCanvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
     const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
 
@@ -445,6 +501,10 @@ function initLoupeDemo() {
     }
   }
 
+  container.addEventListener('pointerdown', (e) => {
+    updateLens(e.clientX, e.clientY);
+  });
+
   container.addEventListener('pointermove', (e) => {
     updateLens(e.clientX, e.clientY);
   });
@@ -464,8 +524,9 @@ function renderLoupeBase() {
   const canvas = document.getElementById('loupe-base-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.parentElement.clientWidth || 600;
+  const w = canvas.width = canvas.parentElement ? (canvas.parentElement.clientWidth || 320) : 320;
   const h = canvas.height = 340;
+  const isMobile = w < 480;
 
   // Background
   ctx.fillStyle = '#0a0d14';
@@ -481,50 +542,56 @@ function renderLoupeBase() {
   const dots = ['#ff5f56', '#ffbd2e', '#27c93f'];
   dots.forEach((col, i) => {
     ctx.beginPath();
-    ctx.arc(20 + i * 16, 19, 5, 0, Math.PI * 2);
+    ctx.arc(16 + i * 14, 19, 4.5, 0, Math.PI * 2);
     ctx.fillStyle = col;
     ctx.fill();
   });
 
   // Window title text
   ctx.fillStyle = '#8b949e';
-  ctx.font = '12px "JetBrains Mono", Menlo, monospace';
-  ctx.fillText('recorder_sck.go — ScreenCaptureKit 60 FPS', 80, 23);
+  ctx.font = isMobile ? '10px "JetBrains Mono", Menlo, monospace' : '12px "JetBrains Mono", Menlo, monospace';
+  const titleText = isMobile ? 'sck.go — 60 FPS' : 'recorder_sck.go — ScreenCaptureKit 60 FPS';
+  ctx.fillText(titleText, isMobile ? 65 : 80, 23);
 
   // Line numbers & Code lines
   const lines = [
     { num: '01', code: 'package main', col: '#ff7b72' },
     { num: '02', code: 'import "github.com/gifkite/sck"', col: '#79c0ff' },
     { num: '03', code: '', col: '' },
-    { num: '04', code: 'func StartHardware60FPS(winID uint32) (*Stream, error) {', col: '#d2a8ff' },
-    { num: '05', code: '    cfg := sck.Config{ FPS: 60, IsolateWindow: true }', col: '#e6edf3' },
-    { num: '06', code: '    stream, err := sck.NewStream(winID, cfg)', col: '#e6edf3' },
-    { num: '07', code: '    if err != nil { return nil, err }', col: '#ff7b72' },
-    { num: '08', code: '    return stream.StartHardwareCapture()', col: '#7ee787' },
-    { num: '09', code: '}', col: '#d2a8ff' },
-    { num: '10', code: '// Sub-1% CPU usage • Zero frame drops', col: '#8b949e' },
+    { num: '04', code: isMobile ? 'func Start60FPS() (*Stream) {' : 'func StartHardware60FPS(winID uint32) (*Stream, error) {', col: '#d2a8ff' },
+    { num: '05', code: isMobile ? '  cfg := sck.Config{ FPS: 60 }' : '    cfg := sck.Config{ FPS: 60, IsolateWindow: true }', col: '#e6edf3' },
+    { num: '06', code: isMobile ? '  stream := sck.New(cfg)' : '    stream, err := sck.NewStream(winID, cfg)', col: '#e6edf3' },
+    { num: '07', code: isMobile ? '  return stream.Start()' : '    return stream.StartHardwareCapture()', col: '#7ee787' },
+    { num: '08', code: '}', col: '#d2a8ff' },
+    { num: '09', code: '// Sub-1% CPU • Zero frame drops', col: '#8b949e' },
   ];
 
+  const codeFontSize = isMobile ? '10px' : '12px';
   lines.forEach((l, idx) => {
-    const y = 68 + idx * 24;
+    const y = 68 + idx * (isMobile ? 22 : 24);
     ctx.fillStyle = '#484f58';
-    ctx.font = '12px "JetBrains Mono", Menlo, monospace';
-    ctx.fillText(l.num, 20, y);
+    ctx.font = `${codeFontSize} "JetBrains Mono", Menlo, monospace`;
+    ctx.fillText(l.num, isMobile ? 12 : 20, y);
 
     if (l.code) {
       ctx.fillStyle = l.col || '#e6edf3';
-      ctx.fillText(l.code, 55, y);
+      ctx.fillText(l.code, isMobile ? 38 : 55, y);
     }
   });
 
   // Pill badge in corner
+  const badgeW = isMobile ? 135 : 160;
+  const badgeH = 24;
+  const badgeX = Math.max(10, w - badgeW - 12);
+  const badgeY = h - 34;
+
   ctx.fillStyle = 'rgba(255, 59, 92, 0.15)';
-  ctx.fillRect(w - 180, h - 38, 160, 26);
+  ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
   ctx.strokeStyle = 'rgba(255, 59, 92, 0.4)';
-  ctx.strokeRect(w - 180, h - 38, 160, 26);
+  ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
   ctx.fillStyle = '#ff6584';
-  ctx.font = 'bold 11px "JetBrains Mono", Menlo, monospace';
-  ctx.fillText('● 60 FPS • SCK ACTIVE', w - 165, h - 21);
+  ctx.font = `bold ${isMobile ? '9px' : '11px'} "JetBrains Mono", Menlo, monospace`;
+  ctx.fillText('● 60 FPS • SCK ACTIVE', badgeX + 10, badgeY + 16);
 }
 
 // 8. Annotations & Privacy Redaction Interactive Demo
@@ -538,6 +605,7 @@ function initAnnotationsDemo() {
   const toolBtns = document.querySelectorAll('.annot-tool-btn[data-tool]');
 
   if (!canvas || !stage) return;
+  canvas.style.touchAction = 'none';
 
   renderAnnotBase();
   window.addEventListener('resize', renderAnnotBase);
@@ -559,12 +627,16 @@ function initAnnotationsDemo() {
     });
   }
 
-  canvas.addEventListener('click', (e) => {
+  function handleAddPoint(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = Math.max(0, Math.min(canvas.width, clientX - rect.left));
+    const y = Math.max(0, Math.min(canvas.height, clientY - rect.top));
     annotItems.push({ type: activeAnnotTool, x, y });
     renderAnnotBase();
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    handleAddPoint(e.clientX, e.clientY);
   });
 
   // Default initial annotations
@@ -576,12 +648,14 @@ function initAnnotationsDemo() {
 }
 
 function applySampleAnnotation(tool) {
+  const canvas = document.getElementById('annot-canvas');
+  const w = canvas ? canvas.width : 500;
   if (tool === 'arrow') {
-    annotItems.push({ type: 'arrow', x1: 520, y1: 80, x2: 440, y2: 195, text: 'Inspect Here' });
+    annotItems.push({ type: 'arrow', x1: w - 80, y1: 75, x2: Math.max(120, w - 160), y2: 185, text: 'Inspect' });
   } else if (tool === 'blur') {
-    annotItems.push({ type: 'blur', x: 220, y: 135, w: 230, h: 26 });
+    annotItems.push({ type: 'blur' });
   } else if (tool === 'caption') {
-    annotItems.push({ type: 'caption', x: 200, y: 40, text: 'CONFIDENTIAL • API SECRET' });
+    annotItems.push({ type: 'caption', x: Math.max(30, (w / 2) - 80), y: 35, text: 'CONFIDENTIAL' });
   }
   renderAnnotBase();
 }
@@ -590,65 +664,74 @@ function renderAnnotBase() {
   const canvas = document.getElementById('annot-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.parentElement.clientWidth || 600;
+  const w = canvas.width = canvas.parentElement ? (canvas.parentElement.clientWidth || 320) : 320;
   const h = canvas.height = 300;
+  const isMobile = w < 480;
 
   // Background
   ctx.fillStyle = '#0a0d14';
   ctx.fillRect(0, 0, w, h);
 
   // App card
+  const cardX = isMobile ? 12 : 30;
+  const cardY = 20;
+  const cardW = w - cardX * 2;
+  const cardH = h - 40;
+
   ctx.fillStyle = '#161b22';
-  ctx.roundRect ? ctx.roundRect(30, 25, w - 60, h - 50, 10) : ctx.fillRect(30, 25, w - 60, h - 50);
+  ctx.roundRect ? ctx.roundRect(cardX, cardY, cardW, cardH, 8) : ctx.fillRect(cardX, cardY, cardW, cardH);
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.stroke();
 
   // Card Header
   ctx.fillStyle = '#f0f3f6';
-  ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('Project Environment & Deploy Keys', 55, 60);
+  ctx.font = `bold ${isMobile ? '12px' : '15px'} -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillText(isMobile ? 'Deploy Credentials' : 'Project Environment & Deploy Keys', cardX + 16, 52);
 
   // Row 1: Endpoint
   ctx.fillStyle = '#8b949e';
-  ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('API Endpoint:', 55, 105);
+  ctx.font = `${isMobile ? '11px' : '13px'} -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillText(isMobile ? 'API:' : 'API Endpoint:', cardX + 16, 95);
   ctx.fillStyle = '#58a6ff';
-  ctx.font = '13px "JetBrains Mono", Menlo, monospace';
-  ctx.fillText('https://api.gifkite.cloud/v1/stream', 180, 105);
+  ctx.font = `${isMobile ? '10px' : '13px'} "JetBrains Mono", Menlo, monospace`;
+  ctx.fillText(isMobile ? 'api.gifkite.cloud' : 'https://api.gifkite.cloud/v1/stream', isMobile ? cardX + 50 : cardX + 130, 95);
 
   // Row 2: Private Token (Sensitive target)
   ctx.fillStyle = '#8b949e';
-  ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('Private Token:', 55, 150);
+  ctx.font = `${isMobile ? '11px' : '13px'} -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillText(isMobile ? 'Token:' : 'Private Token:', cardX + 16, 142);
 
+  const tokenBoxX = isMobile ? cardX + 65 : cardX + 130;
+  const tokenBoxW = Math.max(140, Math.min(260, cardW - (tokenBoxX - cardX) - 16));
   ctx.fillStyle = '#0d1117';
-  ctx.fillRect(175, 132, 260, 28);
+  ctx.fillRect(tokenBoxX, 124, tokenBoxW, 26);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.strokeRect(175, 132, 260, 28);
+  ctx.strokeRect(tokenBoxX, 124, tokenBoxW, 26);
   ctx.fillStyle = '#ff7b72';
-  ctx.font = '13px "JetBrains Mono", Menlo, monospace';
-  ctx.fillText('ghp_98K2jsa01920JfkL08191', 185, 151);
+  ctx.font = `${isMobile ? '10px' : '13px'} "JetBrains Mono", Menlo, monospace`;
+  ctx.fillText(isMobile ? 'ghp_98K2js...' : 'ghp_98K2jsa01920JfkL08191', tokenBoxX + 8, 142);
 
   // Action Button
-  const btnX = Math.min(w - 220, 360);
+  const btnW = isMobile ? 110 : 160;
+  const btnX = Math.max(cardX + 16, cardX + cardW - btnW - 16);
+  const btnY = 185;
   ctx.fillStyle = '#238636';
-  ctx.roundRect ? ctx.roundRect(btnX, 195, 160, 36, 6) : ctx.fillRect(btnX, 195, 160, 36);
+  ctx.roundRect ? ctx.roundRect(btnX, btnY, btnW, 32, 6) : ctx.fillRect(btnX, btnY, btnW, 32);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('Deploy to Cluster', btnX + 22, 218);
+  ctx.font = `bold ${isMobile ? '11px' : '13px'} -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.fillText(isMobile ? 'Deploy' : 'Deploy to Cluster', btnX + (isMobile ? 32 : 22), btnY + 21);
 
   // Draw Annotations
   annotItems.forEach(item => {
     if (item.type === 'blur') {
-      const bx = item.x || 175;
-      const by = item.y || 132;
-      const bw = item.w || 260;
-      const bh = item.h || 28;
+      const bx = isMobile ? tokenBoxX : (item.x || tokenBoxX);
+      const by = isMobile ? 124 : (item.y || 124);
+      const bw = isMobile ? tokenBoxW : (item.w || tokenBoxW);
+      const bh = isMobile ? 26 : (item.h || 26);
 
-      // Authentic Mosaic Pixel Blur
-      const tileSize = 8;
+      const tileSize = 6;
       const cols = Math.ceil(bw / tileSize);
       const rows = Math.ceil(bh / tileSize);
 
@@ -662,26 +745,24 @@ function renderAnnotBase() {
       ctx.strokeStyle = 'rgba(255, 59, 92, 0.6)';
       ctx.strokeRect(bx, by, bw, bh);
     } else if (item.type === 'arrow') {
-      const fromX = item.x1 || (w - 120);
-      const fromY = item.y1 || 80;
-      const toX = item.x2 || (btnX + 80);
-      const toY = item.y2 || 190;
+      const fromX = Math.min(w - 30, Math.max(50, item.x1 !== undefined ? Math.min(item.x1, w - 40) : (w - 60)));
+      const fromY = item.y1 || 70;
+      const toX = isMobile ? (btnX + btnW / 2) : (item.x2 || (btnX + 60));
+      const toY = isMobile ? btnY : (item.y2 || 185);
 
       ctx.save();
       ctx.strokeStyle = '#ff3b5c';
       ctx.fillStyle = '#ff3b5c';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
 
-      // Curved line
       ctx.beginPath();
       ctx.moveTo(fromX, fromY);
-      ctx.quadraticCurveTo(fromX - 20, toY - 40, toX, toY);
+      ctx.quadraticCurveTo(fromX - 15, toY - 30, toX, toY);
       ctx.stroke();
 
-      // Arrow head
-      const angle = Math.atan2(toY - (toY - 40), toX - (fromX - 20));
-      const headLen = 12;
+      const angle = Math.atan2(toY - (toY - 30), toX - (fromX - 15));
+      const headLen = 10;
       ctx.beginPath();
       ctx.moveTo(toX, toY);
       ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
@@ -689,22 +770,22 @@ function renderAnnotBase() {
       ctx.closePath();
       ctx.fill();
 
-      // Label
-      ctx.font = 'bold 12px "Outfit", sans-serif';
-      ctx.fillText(item.text || 'Action', fromX - 60, fromY - 8);
+      ctx.font = `bold ${isMobile ? '10px' : '12px'} "Outfit", sans-serif`;
+      ctx.fillText(item.text || 'Action', Math.max(20, fromX - 55), fromY - 6);
       ctx.restore();
     } else if (item.type === 'caption') {
-      const cx = item.x || (w / 2 - 100);
-      const cy = item.y || 40;
+      const capW = isMobile ? 150 : 210;
+      const cx = Math.max(cardX + 10, Math.min(w - capW - 20, item.x || (w / 2 - capW / 2)));
+      const cy = item.y || 35;
       ctx.fillStyle = '#07090d';
-      ctx.roundRect ? ctx.roundRect(cx, cy, 210, 28, 14) : ctx.fillRect(cx, cy, 210, 28);
+      ctx.roundRect ? ctx.roundRect(cx, cy, capW, 26, 13) : ctx.fillRect(cx, cy, capW, 26);
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 59, 92, 0.5)';
       ctx.stroke();
 
       ctx.fillStyle = '#ff6584';
-      ctx.font = 'bold 11px "JetBrains Mono", Menlo, monospace';
-      ctx.fillText(item.text || 'REDACTED KEY', cx + 18, cy + 18);
+      ctx.font = `bold ${isMobile ? '9px' : '11px'} "JetBrains Mono", Menlo, monospace`;
+      ctx.fillText(isMobile ? 'REDACTED KEY' : (item.text || 'REDACTED KEY'), cx + 16, cy + 17);
     }
   });
 }

@@ -39,6 +39,8 @@
 html {
   scroll-behavior: smooth;
   color-scheme: dark;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -47,6 +49,8 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -57,6 +61,8 @@ body {
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
+  max-width: 100vw;
+  contain: strict;
 }
 
 .glow-orb-1 {
@@ -333,10 +339,14 @@ header.site-nav {
   padding: 0.6rem 1rem;
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: clamp(0.76rem, 2.5vw, 0.9rem);
   color: var(--coral-light);
-  gap: 1rem;
+  gap: 0.8rem;
   box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
 }
 
 .install-bar button {
@@ -767,15 +777,22 @@ section.shortcuts {
   padding: 0 1.5rem;
 }
 
-.shortcuts-table {
+.shortcuts-table-wrapper {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   backdrop-filter: blur(16px);
+}
+
+.shortcuts-table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
 }
 
 .shortcuts-table th, .shortcuts-table td {
@@ -907,11 +924,62 @@ footer.site-footer {
 
 /* Responsive */
 @media (max-width: 768px) {
+  header.site-nav { padding: 0.75rem 1rem; }
   .nav-links { display: none; }
-  .features-grid { grid-template-columns: 1fr; }
-  .footer-content { flex-direction: column; text-align: center; }
-  .hero-actions { flex-direction: column; }
-  .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+  
+  .hero { padding: 2.5rem 1rem 2rem; }
+  .hero-app-icon { width: 68px; height: 68px; }
+  .hero h1 { font-size: clamp(1.85rem, 7.5vw, 2.75rem); line-height: 1.15; margin-bottom: 1rem; }
+  .hero p.lead { font-size: 1.02rem; margin-bottom: 1.5rem; line-height: 1.55; }
+  
+  .hero-pills { gap: 0.4rem; margin: 1rem auto 0; }
+  .hero-pill-item { font-size: 0.75rem; padding: 0.25rem 0.65rem; }
+  
+  .hero-actions { flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+  .btn-primary, .btn-secondary { width: 100%; justify-content: center; padding: 0.75rem 1.25rem; font-size: 0.95rem; }
+  
+  .install-bar { padding: 0.5rem 0.75rem; font-size: 0.76rem; width: 100%; justify-content: space-between; }
+  
+  .hero-preview { padding: 0 0.5rem; margin-bottom: 3.5rem; }
+  .interactive-viewfinder { height: 280px; touch-action: none; }
+  .viewfinder-box { width: 88%; height: 75%; padding: 0.75rem; touch-action: none; }
+  .vf-pill { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+  .vf-pill-controls { padding: 0.35rem 0.75rem; gap: 0.5rem; font-size: 0.75rem; flex-wrap: wrap; justify-content: center; }
+  .vf-btn-action { padding: 0.2rem 0.5rem; font-size: 0.72rem; }
+  
+  section.features, section.interactive-demos, section.shortcuts, section.docs { padding: 0 1rem; margin-bottom: 3.5rem; }
+  .section-head { margin-bottom: 2rem; }
+  .section-head h2 { font-size: 1.85rem; }
+  .section-head p { font-size: 0.95rem; }
+  
+  .features-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .feature-card { padding: 1.5rem; }
+  .feature-icon-wrapper { width: 44px; height: 44px; margin-bottom: 1rem; }
+  
+  .demos-tabs { gap: 0.35rem; margin-bottom: 1.25rem; }
+  .tab-btn { font-size: 0.78rem; padding: 0.45rem 0.85rem; }
+  .demo-display-panel { padding: 1rem; border-radius: var(--radius-md); }
+  
+  .loupe-sandbox-wrapper { height: 280px; touch-action: none; }
+  .ripple-sandbox { height: 280px; touch-action: none; }
+  .dither-canvas-wrapper { height: 220px; }
+  .dither-controls-bar { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .dither-btn-group { flex-wrap: wrap; gap: 0.35rem; }
+  .dither-btn { font-size: 0.78rem; padding: 0.35rem 0.75rem; }
+  
+  .annot-canvas-stage { height: 240px; touch-action: none; }
+  .annot-toolbar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  .annot-btn-group { flex-wrap: wrap; gap: 0.35rem; }
+  .annot-tool-btn { font-size: 0.78rem; padding: 0.35rem 0.65rem; }
+  
+  .timeline-simulator { padding: 1rem; }
+  .timeline-track-wrapper { height: 56px; touch-action: none; }
+  .timeline-info { flex-direction: column; gap: 0.75rem; text-align: center; }
+  
+  .shortcuts-table th, .shortcuts-table td { padding: 0.75rem 0.85rem; font-size: 0.8rem; }
+  .docs-code-block pre { padding: 0.85rem; font-size: 0.78rem; }
+  
+  .footer-content { flex-direction: column; text-align: center; gap: 1rem; }
 }
 
 /* Feature Badges & Chips in Hero */
