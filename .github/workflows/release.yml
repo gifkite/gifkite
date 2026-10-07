@@ -5,9 +5,17 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to build and publish (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
 
 permissions:
   contents: write
+
+env:
+  RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
 
 jobs:
   build-release-macos:
@@ -28,7 +36,7 @@ jobs:
         run: go test -v .
 
       - name: Build Gifkite.app bundle
-        run: ./build-app.sh "${{ github.ref_name }}"
+        run: ./build-app.sh "${{ env.RELEASE_VERSION }}"
 
       - name: Package DMG & ZIP
         run: |
@@ -45,6 +53,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
           files: |
             Gifkite-macOS.dmg
             Gifkite-macOS.zip
@@ -65,7 +75,7 @@ jobs:
           cache: true
 
       - name: Build Windows executable
-        run: go build -ldflags="-H windowsgui -s -w -X main.Version=${{ github.ref_name }}" -o gifkite.exe .
+        run: go build -ldflags="-H windowsgui -s -w -X main.Version=${{ env.RELEASE_VERSION }}" -o gifkite.exe .
 
       - name: Package Windows ZIP
         shell: pwsh
@@ -75,6 +85,8 @@ jobs:
       - name: Create / Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
           files: |
             Gifkite-Windows-x64.zip
           generate_release_notes: true
@@ -99,7 +111,7 @@ jobs:
           cache: true
 
       - name: Build Linux executable
-        run: go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o gifkite .
+        run: go build -ldflags="-s -w -X main.Version=${{ env.RELEASE_VERSION }}" -o gifkite .
 
       - name: Package Linux tarball
         run: |
@@ -108,6 +120,8 @@ jobs:
       - name: Create / Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
           files: |
             Gifkite-Linux-x64.tar.gz
           generate_release_notes: true
