@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"os"
 	"sync"
 	"time"
@@ -78,7 +79,7 @@ func closeX11() {
 func queryPointer() (*xproto.QueryPointerReply, error) {
 	c, screen := getX11()
 	if c == nil || screen == nil {
-		return nil, xgb.ErrNilConn
+		return nil, errors.New("x11 connection unavailable")
 	}
 	reply, err := xproto.QueryPointer(c, screen.Root).Reply()
 	if err != nil {

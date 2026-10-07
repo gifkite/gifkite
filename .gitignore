@@ -7,3 +7,9 @@ gifkite
 .DS_Store
 Thumbs.db
 *.zip
+
+.reponerve
+.cursor
+.continue
+CLAUDE.md
+*.exe
