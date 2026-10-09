@@ -4,7 +4,7 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-VERSION="${1:-${VERSION:-1.0.0}}"
+VERSION="${1:-${VERSION:-0.2.0}}"
 BUNDLE_VERSION="${VERSION#v}"
 
 # Kill any currently running Gifkite process before building

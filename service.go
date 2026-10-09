@@ -218,8 +218,12 @@ func (s *GifService) fail(err error) {
 	s.phase = phaseIdle
 	s.lastErr = err.Error()
 	s.mu.Unlock()
-	s.controls.Hide()
-	s.picker.Hide()
+	if s.controls != nil {
+		s.controls.Hide()
+	}
+	if s.picker != nil {
+		s.picker.Hide()
+	}
 	if s.editor != nil {
 		s.editor.Hide()
 	}
@@ -414,9 +418,15 @@ func (s *GifService) begin(r NormRect, full bool) {
 	playSound("Tink")
 	s.broadcast()
 
-	setWindowInvisibleToCapture(s.popover.NativeWindow())
-	setWindowInvisibleToCapture(s.controls.NativeWindow())
-	setWindowInvisibleToCapture(s.picker.NativeWindow())
+	if s.popover != nil {
+		setWindowInvisibleToCapture(s.popover.NativeWindow())
+	}
+	if s.controls != nil {
+		setWindowInvisibleToCapture(s.controls.NativeWindow())
+	}
+	if s.picker != nil {
+		setWindowInvisibleToCapture(s.picker.NativeWindow())
+	}
 
 	s.placeControls(s.toDIP(r))
 
@@ -475,8 +485,12 @@ func (s *GifService) end(save bool) {
 		if rec != nil {
 			rec.Pause() // Immediately freeze capture so no trailing stop clicks or transitions are captured!
 		}
-		s.controls.Hide()
-		s.popover.Hide()
+		if s.controls != nil {
+			s.controls.Hide()
+		}
+		if s.popover != nil {
+			s.popover.Hide()
+		}
 		go s.finish(rec, save)
 	}
 }
@@ -490,13 +504,17 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 	s.rec = nil
 	s.mu.Unlock()
 
-	s.controls.Hide()
+	if s.controls != nil {
+		s.controls.Hide()
+	}
 	frames, end, err := rec.Stop()
 	if !save {
 		s.mu.Lock()
 		s.phase = phaseIdle
 		s.mu.Unlock()
-		s.tray.SetLabel("")
+		if s.tray != nil {
+			s.tray.SetLabel("")
+		}
 		s.broadcast()
 		return
 	}
@@ -981,6 +999,9 @@ func (s *GifService) toDIP(r NormRect) application.Rect {
 // capture APIs and will NEVER appear inside the recorded GIF even if positioned
 // inside or over the recording rect.
 func (s *GifService) placeControls(d application.Rect) {
+	if s.controls == nil {
+		return
+	}
 	s.mu.Lock()
 	show := s.settings.ShowControls
 	scr := s.activeScreen
@@ -989,8 +1010,11 @@ func (s *GifService) placeControls(d application.Rect) {
 		s.controls.Hide()
 		return
 	}
-	if scr == nil {
+	if scr == nil && s.app != nil && s.app.Screen != nil {
 		scr = s.app.Screen.GetPrimary()
+	}
+	if scr == nil {
+		return
 	}
 	wa := scr.WorkArea
 	x := d.X + d.Width/2 - controlsW/2

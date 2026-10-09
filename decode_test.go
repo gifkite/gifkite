@@ -102,6 +102,23 @@ func TestExportAndPostSaveTrim(t *testing.T) {
 		t.Fatalf("ConfirmReview failed: %v", err)
 	}
 
+	// Wait for async encoding of the copy to finish
+	copyDeadline := time.Now().Add(5 * time.Second)
+	copyDone := false
+	for time.Now().Before(copyDeadline) {
+		s.mu.Lock()
+		phase := s.phase
+		s.mu.Unlock()
+		if phase == phaseIdle {
+			copyDone = true
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !copyDone {
+		t.Fatalf("timed out waiting for ConfirmReview copy save to complete")
+	}
+
 	// 3. Test Direct Export to MP4
 	if findBinary("ffmpeg") != "" {
 		outMp4, err := s.ExportRecording("gifkite-2026-10-09-100000.gif", "mp4")
@@ -174,17 +191,25 @@ func TestCropAndColorQuantization(t *testing.T) {
 	deadline := time.Now().Add(5 * time.Second)
 	var croppedPath string
 	for time.Now().Before(deadline) {
-		files, err := os.ReadDir(tmpDir)
-		if err == nil {
-			for _, f := range files {
-				if strings.HasSuffix(f.Name(), ".gif") && f.Name() != "gifkite-crop.gif" {
-					croppedPath = filepath.Join(tmpDir, f.Name())
-					break
+		s.mu.Lock()
+		phase := s.phase
+		s.mu.Unlock()
+		if phase == phaseIdle {
+			files, err := os.ReadDir(tmpDir)
+			if err == nil {
+				for _, f := range files {
+					if strings.HasSuffix(f.Name(), ".gif") && f.Name() != "gifkite-crop.gif" {
+						info, err := f.Info()
+						if err == nil && info.Size() > 0 {
+							croppedPath = filepath.Join(tmpDir, f.Name())
+							break
+						}
+					}
 				}
 			}
-		}
-		if croppedPath != "" {
-			break
+			if croppedPath != "" {
+				break
+			}
 		}
 		time.Sleep(20 * time.Millisecond)
 	}

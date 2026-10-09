@@ -24,7 +24,7 @@ RELEASE_JSON=$(curl -sSL https://api.github.com/repos/gifkite/gifkite/releases/l
 TAG_NAME=$(echo "$RELEASE_JSON" | grep '"tag_name":' | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$TAG_NAME" ]; then
-    TAG_NAME="v0.1.0"
+    TAG_NAME="v0.2.0"
 fi
 
 ZIP_URL="https://github.com/gifkite/gifkite/releases/download/${TAG_NAME}/Gifkite-macOS.zip"
