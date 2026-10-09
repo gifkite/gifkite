@@ -36,7 +36,7 @@ type rgb struct{ r, g, b uint8 }
 // BuildQuantizer extracts dominant exact colors first (preserving brand colors,
 // buttons, text, and icons with 100% accuracy), and uses median-cut for the remainder.
 func BuildQuantizer(frames []Frame, maxColors int) *Quantizer {
-	const maxSamples = 300_000
+	const maxSamples = 60_000
 	total := 0
 	for _, f := range frames {
 		total += len(f.Img.Pix) / 4
@@ -120,52 +120,63 @@ func BuildQuantizer(frames []Frame, maxColors int) *Quantizer {
 		}
 
 		if len(remSamples) > 0 {
-			boxes := [][]rgb{remSamples}
+			type qBox struct {
+				colors    []rgb
+				bestRange int
+				bestCh    int
+			}
+			newBox := func(bx []rgb) qBox {
+				rng, ch := channelRange(bx)
+				return qBox{colors: bx, bestRange: rng, bestCh: ch}
+			}
+
+			boxes := []qBox{newBox(remSamples)}
 			for len(boxes) < remainingSlots {
-				bi, bestRange, bestCh := -1, 0, 0
-				for i, bx := range boxes {
-					if len(bx) < 2 {
-						continue
-					}
-					rng, ch := channelRange(bx)
-					if rng > bestRange {
-						bi, bestRange, bestCh = i, rng, ch
+				bi, bestRange := -1, 0
+				for i, b := range boxes {
+					if len(b.colors) >= 2 && b.bestRange > bestRange {
+						bi, bestRange = i, b.bestRange
 					}
 				}
 				if bi < 0 {
 					break
 				}
-				bx := boxes[bi]
-				sort.Slice(bx, func(a, b int) bool {
-					va, vb := chVal(bx[a], bestCh), chVal(bx[b], bestCh)
+
+				target := boxes[bi]
+				ch := target.bestCh
+				sort.Slice(target.colors, func(a, b int) bool {
+					va, vb := chVal(target.colors[a], ch), chVal(target.colors[b], ch)
 					if va != vb {
 						return va < vb
 					}
-					if bx[a].r != bx[b].r {
-						return bx[a].r < bx[b].r
+					if target.colors[a].r != target.colors[b].r {
+						return target.colors[a].r < target.colors[b].r
 					}
-					if bx[a].g != bx[b].g {
-						return bx[a].g < bx[b].g
+					if target.colors[a].g != target.colors[b].g {
+						return target.colors[a].g < target.colors[b].g
 					}
-					return bx[a].b < bx[b].b
+					return target.colors[a].b < target.colors[b].b
 				})
-				mid := len(bx) / 2
-				boxes[bi] = bx[:mid]
-				boxes = append(boxes, bx[mid:])
+				mid := len(target.colors) / 2
+				left := target.colors[:mid]
+				right := target.colors[mid:]
+				boxes[bi] = newBox(left)
+				boxes = append(boxes, newBox(right))
 			}
 
-			for _, bx := range boxes {
+			for _, b := range boxes {
+				bx := b.colors
 				if len(bx) == 0 {
 					continue
 				}
-				var r, g, b int
+				var r, g, bVal int
 				for _, c := range bx {
 					r += int(c.r)
 					g += int(c.g)
-					b += int(c.b)
+					bVal += int(c.b)
 				}
 				n := len(bx)
-				cr, cg, cb := uint8(r/n), uint8(g/n), uint8(b/n)
+				cr, cg, cb := uint8(r/n), uint8(g/n), uint8(bVal/n)
 				idx := uint8(len(q.Palette))
 				q.Palette = append(q.Palette, color.RGBA{cr, cg, cb, 255})
 				q.PaletteRGB[idx] = [3]uint8{cr, cg, cb}
@@ -184,15 +195,16 @@ func BuildQuantizer(frames []Frame, maxColors int) *Quantizer {
 }
 
 func (q *Quantizer) buildLUT() {
+	palLen := len(q.Palette)
 	for i := range q.lut {
 		r := uint8(i>>10&31) << 3
 		g := uint8(i>>5&31) << 3
 		b := uint8(i&31) << 3
 		r, g, b = r|r>>5, g|g>>5, b|b>>5
 		best, bestD := 0, 1<<31-1
-		for j, c := range q.Palette {
-			pc := c.(color.RGBA)
-			dr, dg, db := int(r)-int(pc.R), int(g)-int(pc.G), int(b)-int(pc.B)
+		for j := 0; j < palLen; j++ {
+			c := q.PaletteRGB[j]
+			dr, dg, db := int(r)-int(c[0]), int(g)-int(c[1]), int(b)-int(c[2])
 			d := 2*dr*dr + 4*dg*dg + 3*db*db
 			if d < bestD {
 				best, bestD = j, d

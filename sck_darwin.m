@@ -4,7 +4,7 @@
 #import <CoreVideo/CoreVideo.h>
 #include "sck_darwin.h"
 
-extern void sckFrameCallback(uintptr_t ctx, const void* baseAddress, int width, int height, int bytesPerRow, int64_t ptsNs);
+extern void sckFrameCallback(uintptr_t ctx, const void* baseAddress, int width, int height, int bytesPerRow, int64_t ptsNs, int screenX, int screenY, int screenW, int screenH);
 
 @interface SCKSession : NSObject <SCStreamOutput, SCStreamDelegate>
 @property (nonatomic, strong) SCStream *stream;
@@ -20,6 +20,7 @@ extern void sckFrameCallback(uintptr_t ctx, const void* baseAddress, int width, 
         return;
     }
 
+    CGRect screenRect = CGRectZero;
     CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
     if (attachments && CFArrayGetCount(attachments) > 0) {
         CFDictionaryRef dict = (CFDictionaryRef)CFArrayGetValueAtIndex(attachments, 0);
@@ -31,6 +32,13 @@ extern void sckFrameCallback(uintptr_t ctx, const void* baseAddress, int width, 
                 if (status != SCFrameStatusComplete && status != SCFrameStatusStarted) {
                     return; // skip blank / suspended / idle frames
                 }
+            }
+            CFDictionaryRef screenRectDict = (CFDictionaryRef)CFDictionaryGetValue(dict, CFSTR("SCStreamUpdateFrameScreenRect"));
+            if (!screenRectDict) {
+                screenRectDict = (CFDictionaryRef)CFDictionaryGetValue(dict, SCStreamFrameInfoScreenRect);
+            }
+            if (screenRectDict) {
+                CGRectMakeWithDictionaryRepresentation(screenRectDict, &screenRect);
             }
         }
     }
@@ -47,7 +55,9 @@ extern void sckFrameCallback(uintptr_t ctx, const void* baseAddress, int width, 
         int64_t ptsNs = (int64_t)(CMTimeGetSeconds(pts) * 1e9);
 
         if (base && w > 0 && h > 0) {
-            sckFrameCallback(self.goCtx, base, w, h, stride, ptsNs);
+            sckFrameCallback(self.goCtx, base, w, h, stride, ptsNs,
+                             (int)screenRect.origin.x, (int)screenRect.origin.y,
+                             (int)screenRect.size.width, (int)screenRect.size.height);
         }
         CVPixelBufferUnlockBaseAddress(imgBuf, kCVPixelBufferLock_ReadOnly);
     }
@@ -130,6 +140,7 @@ void* startSCKStream(int displayIndex, int windowID, int x, int y, int w, int h,
             }
 
             filter = [[SCContentFilter alloc] initWithDisplay:targetDisp excludingWindows:excluded];
+            NSLog(@"[Gifkite SCK] targetDisp %d: width=%ld height=%ld frame=(%f,%f,%f,%f), input rect=(%d,%d,%d,%d)", displayIndex, (long)targetDisp.width, (long)targetDisp.height, targetDisp.frame.origin.x, targetDisp.frame.origin.y, targetDisp.frame.size.width, targetDisp.frame.size.height, x, y, w, h);
             if (w > 0 && h > 0) {
                 config.sourceRect = CGRectMake(x, y, w, h);
                 config.width = (size_t)w;

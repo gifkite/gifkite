@@ -78,123 +78,26 @@
     </div>
   </section>
 
-  <!-- review / trim editor studio -->
-  <section class="review-box" data-show="review" hidden>
-    <div class="review-top-bar">
-      <div class="review-title-group">
-        <span class="review-badge">TRIM & REVIEW</span>
-        <span class="review-dur num" id="review-dur">0.0s</span>
-      </div>
-      <div class="review-meta-group">
-        <div class="speed-btns" id="speed-btns">
-          <button data-spd="1" class="on">1x</button>
-          <button data-spd="1.5">1.5x</button>
-          <button data-spd="2">2x</button>
-        </div>
-        <span class="review-frames num" id="review-frames">0 frames</span>
-      </div>
-    </div>
-
-    <!-- Main Viewport Player Stage -->
-    <div class="review-stage">
-      <div class="review-player" id="review-player">
-        <img id="review-img" alt="Preview frame" draggable="false">
-        <canvas id="review-canvas" class="review-canvas"></canvas>
-        <button class="review-play-btn" id="review-play-btn" title="Play / Pause preview">
-          <svg id="play-icon" viewBox="0 0 24 24"><polygon points="7 4 19 12 7 20 7 4"/></svg>
-          <svg id="pause-icon" viewBox="0 0 24 24" hidden><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-        </button>
-        <span class="review-frame-badge num" id="review-frame-badge">1 / 1</span>
-      </div>
-    </div>
-
-    <!-- Creative Annotation Tools Ribbon -->
-    <div class="annot-toolbar" id="annot-toolbar">
-      <div class="annot-tool-group">
-        <button type="button" class="annot-btn" data-tool="arrow" id="tool-arrow" title="Draw Arrow">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-            <path d="M14 8a.75.75 0 0 1-.75.75H4.56l3.22 3.22a.75.75 0 1 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06l4.5-4.5a.75.75 0 0 1 1.06 1.06L4.56 7.25h8.69A.75.75 0 0 1 14 8z" transform="rotate(180 8 8)"/>
-          </svg>
-          <span>Arrow</span>
-        </button>
-        <button type="button" class="annot-btn" data-tool="blur" id="tool-blur" title="Redact / Blur Sensitive Box">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-            <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v7A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 13.5 3h-11zm1 2h3v2h-3V5zm5 0h3v2h-3V5zm-5 4h3v2h-3V9zm5 0h3v2h-3V9z"/>
-          </svg>
-          <span>Redact</span>
-        </button>
-        <button type="button" class="annot-btn" data-tool="text" id="tool-text" title="Text Caption">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-            <path d="M2.5 3.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4H8.5v8.5H10a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1h1.5V4H3.5v1.5a.5.5 0 0 1-1 0v-2z"/>
-          </svg>
-          <span>Text</span>
-        </button>
-      </div>
-
-      <div class="annot-sep"></div>
-
-      <!-- Color swatches -->
-      <div class="annot-colors" id="annot-colors">
-        <button type="button" class="swatch on" data-col="#ff3b30" style="background: #ff3b30;" title="Red"></button>
-        <button type="button" class="swatch" data-col="#ffd60a" style="background: #ffd60a;" title="Yellow"></button>
-        <button type="button" class="swatch" data-col="#ffffff" style="background: #ffffff;" title="White"></button>
-        <button type="button" class="swatch" data-col="#30d158" style="background: #30d158;" title="Green"></button>
-      </div>
-
-      <div class="annot-sep"></div>
-
-      <button type="button" class="annot-clear-btn" id="annot-clear-btn" title="Clear Annotations">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  <!-- Active Editor Studio State (Popover View) -->
+  <section class="editor-active-box" data-show="review" hidden>
+    <div class="editor-active-card">
+      <div class="editor-active-icon">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
         </svg>
-        <span>Clear</span>
-      </button>
-    </div>
-
-    <!-- Timeline Trimmer Deck -->
-    <div class="timeline-deck">
-      <div class="timeline-meta">
-        <div class="timeline-meta-left">
-          <span class="timeline-label">Trim Range</span>
-          <span class="timeline-range-badge num" id="timeline-range-badge">0.0s – 0.0s</span>
-        </div>
-        <div class="timeline-meta-right">
-          <span class="timeline-head-badge num" id="timeline-head-badge">Frame 1</span>
-        </div>
       </div>
-
-      <div class="timeline-wrap">
-        <div class="timeline-bar">
-          <div class="timeline-range" id="timeline-range"></div>
-          <div class="timeline-needle" id="timeline-needle"></div>
-        </div>
-        <div class="trim-inputs">
-          <input type="range" id="trim-start" min="0" max="0" value="0" step="1">
-          <input type="range" id="trim-end" min="0" max="0" value="0" step="1">
-        </div>
-      </div>
-    </div>
-
-    <!-- Export & Save Bottom Deck -->
-    <div class="review-bottom-deck">
-      <div class="format-bar">
-        <span class="format-label">Format</span>
-        <div class="format-toggle" id="format-toggle">
-          <button type="button" data-fmt="gif" class="on">GIF</button>
-          <button type="button" data-fmt="webp">WebP</button>
-          <button type="button" data-fmt="mp4">MP4</button>
-        </div>
-      </div>
-
-      <div class="review-actions-row">
-        <button class="ghost review-discard-btn" id="review-discard-btn">Discard</button>
-        <button class="review-save-btn" id="review-save-btn">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+      <div class="editor-active-title">Trim & Review in Progress</div>
+      <div class="editor-active-sub">The dedicated Editor Studio window is open for trimming, cropping, and annotations.</div>
+      <div class="editor-active-actions">
+        <button type="button" class="btn btn-primary" id="btn-focus-editor">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1h-3zM10 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 15 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 13.5v-3a.5.5 0 0 1 .5-.5zm14 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5z"/>
           </svg>
-          <span id="review-save-text">Save GIF</span>
+          <span>Focus Editor Studio</span>
         </button>
+        <button type="button" class="ghost" id="btn-discard-editor-popover">Discard Recording</button>
       </div>
     </div>
   </section>
@@ -277,6 +180,13 @@
     </div>
     <p class="note">"None (Crisp)" keeps UI text, icons & solid colors pixel-perfect with zero blur.</p>
     <div class="field">
+      <span>Color palette</span>
+      <div class="seg" data-key="maxColors">
+        <button data-v="256">256</button><button data-v="128">128</button><button data-v="64">64</button><button data-v="32">32</button>
+      </div>
+    </div>
+    <p class="note">Fewer colors significantly reduce GIF file size (64 colors saves ~40-60%).</p>
+    <div class="field">
       <span>Stop automatically after</span>
       <select id="max">
         <option value="15">15 seconds</option>
@@ -318,6 +228,10 @@
     <label class="field toggle">
       <span>Show floating stop button pill during recording</span>
       <input type="checkbox" id="showControls"><i></i>
+    </label>
+    <label class="field toggle">
+      <span>Launch Gifkite at Login</span>
+      <input type="checkbox" id="launchAtLogin"><i></i>
     </label>
     <div class="field col">
       <span>Save recordings to</span>

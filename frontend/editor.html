@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gifkite Editor</title>
+<link rel="icon" type="image/svg+xml" href="/assets/gifkite-mark.svg">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/editor.css">
+<script type="module" src="/editor.js"></script>
+</head>
+<body class="editor-body">
+
+  <!-- Ambient background glow mesh -->
+  <div class="bg-glow-wrapper" aria-hidden="true">
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+  </div>
+
+  <!-- Top Title / Tool Bar (draggable for macOS window dragging) -->
+  <header class="editor-header" id="editor-header">
+    <div class="mac-traffic-lights-spacer"></div>
+
+    <div class="header-title-group">
+      <div class="app-mark-pill">
+        <img src="/assets/gifkite-mark.svg" alt="Gifkite" width="16" height="16">
+        <span class="app-title-text">Editor Studio</span>
+      </div>
+      <span class="file-badge num" id="file-badge" hidden></span>
+      <span class="meta-pill num" id="meta-pill">0 fps</span>
+    </div>
+
+    <!-- Center Playback & Speed Controls -->
+    <div class="header-center-group">
+      <button type="button" class="ctrl-btn" id="step-back" title="Previous Frame (Left Arrow)">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+          <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+        </svg>
+      </button>
+      <button type="button" class="play-btn" id="play-btn" title="Play / Pause (Space)">
+        <svg id="play-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+          <polygon points="7 4 19 12 7 20 7 4"/>
+        </svg>
+        <svg id="pause-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" hidden>
+          <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+        </svg>
+      </button>
+      <button type="button" class="ctrl-btn" id="step-fwd" title="Next Frame (Right Arrow)">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+          <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
+      </button>
+
+      <div class="speed-selector" id="speed-selector">
+        <button type="button" data-spd="1" class="on">1x</button>
+        <button type="button" data-spd="1.5">1.5x</button>
+        <button type="button" data-spd="2">2x</button>
+      </div>
+
+      <div class="time-readout num" id="time-readout">0.0s / 0.0s</div>
+    </div>
+
+    <!-- Right Creative Annotation Tools -->
+    <div class="header-annot-group">
+      <div class="annot-tools" id="annot-tools">
+        <button type="button" class="tool-btn" data-tool="arrow" id="tool-arrow" title="Draw Arrow">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M14 8a.75.75 0 0 1-.75.75H4.56l3.22 3.22a.75.75 0 1 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06l4.5-4.5a.75.75 0 0 1 1.06 1.06L4.56 7.25h8.69A.75.75 0 0 1 14 8z" transform="rotate(180 8 8)"/>
+          </svg>
+          <span class="tool-label">Arrow</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="blur" id="tool-blur" title="Blur / Redact Box">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v7A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 13.5 3h-11zm1 2h3v2h-3V5zm5 0h3v2h-3V5zm-5 4h3v2h-3V9zm5 0h3v2h-3V9z"/>
+          </svg>
+          <span class="tool-label">Redact</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="text" id="tool-text" title="Text Caption (Click canvas to place)">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M2.5 3.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4H8.5v8.5H10a.5.5 0 0 1 0 1H6a.5.5 0 0 1 0-1h1.5V4H3.5v1.5a.5.5 0 0 1-1 0v-2z"/>
+          </svg>
+          <span class="tool-label">Text</span>
+        </button>
+        <button type="button" class="tool-btn" data-tool="crop" id="tool-crop" title="Crop Canvas">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path d="M3.5.5A.5.5 0 0 1 4 1v11h11a.5.5 0 0 1 0 1h-2v2.5a.5.5 0 0 1-1 0V13H4a1 1 0 0 1-1-1V3H.5a.5.5 0 0 1 0-1H3V.5a.5.5 0 0 1 .5-.5z"/>
+          </svg>
+          <span class="tool-label">Crop</span>
+        </button>
+      </div>
+
+      <div class="annot-sep"></div>
+
+      <!-- Color Palette -->
+      <div class="color-picker" id="color-picker" title="Active Color">
+        <button type="button" class="color-dot on" data-col="#ff3b30" style="background:#ff3b30;" title="Coral Red"></button>
+        <button type="button" class="color-dot" data-col="#ffd60a" style="background:#ffd60a;" title="Yellow"></button>
+        <button type="button" class="color-dot" data-col="#ffffff" style="background:#ffffff;" title="White"></button>
+        <button type="button" class="color-dot" data-col="#30d158" style="background:#30d158;" title="Neon Green"></button>
+      </div>
+
+      <div class="annot-sep"></div>
+
+      <!-- History & Item Actions: Undo, Redo, Delete Item, Clear -->
+      <div class="history-actions" id="history-actions">
+        <button type="button" class="action-icon-btn" id="btn-undo" title="Undo (Cmd+Z)" disabled>
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+          </svg>
+        </button>
+        <button type="button" class="action-icon-btn" id="btn-redo" title="Redo (Cmd+Shift+Z)" disabled>
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966c.12.1.41.01.41-.192z"/>
+          </svg>
+        </button>
+        <button type="button" class="action-icon-btn danger" id="btn-delete-annot" title="Delete Selected Annotation (Backspace / Delete)" disabled>
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+          </svg>
+        </button>
+        <button type="button" class="action-icon-btn clear" id="clear-annot" title="Clear All Annotations">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Center Stage Canvas Viewport -->
+  <main class="editor-stage">
+    <div class="stage-container" id="stage-container">
+      <div class="viewport-box" id="viewport-box">
+        <img id="preview-img" alt="Recording Frame" draggable="false">
+        <canvas id="annot-canvas" class="annot-canvas"></canvas>
+
+        <!-- Floating Inline Text Editor Input -->
+        <div id="inline-text-box" class="inline-text-box" hidden>
+          <input type="text" id="inline-text-input" class="inline-text-input" placeholder="Type text…" autocomplete="off" spellcheck="false">
+          <button type="button" id="inline-text-commit" class="inline-text-btn check" title="Apply Text (Enter)">✓</button>
+          <button type="button" id="inline-text-cancel" class="inline-text-btn close" title="Cancel (Esc)">✕</button>
+        </div>
+
+        <div id="crop-overlay" class="crop-overlay" hidden>
+          <div id="crop-box" class="crop-box">
+            <div class="crop-grid">
+              <div class="grid-line h1"></div>
+              <div class="grid-line h2"></div>
+              <div class="grid-line v1"></div>
+              <div class="grid-line v2"></div>
+            </div>
+            <div class="crop-handle nw" data-handle="nw"></div>
+            <div class="crop-handle ne" data-handle="ne"></div>
+            <div class="crop-handle sw" data-handle="sw"></div>
+            <div class="crop-handle se" data-handle="se"></div>
+            <div class="crop-dims num" id="crop-dims">0 × 0</div>
+            <div class="crop-toolbar">
+              <button type="button" class="crop-toolbar-btn apply" id="btn-crop-apply">Apply</button>
+              <button type="button" class="crop-toolbar-btn reset" id="btn-crop-reset">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-indicator-pill num" id="frame-indicator-pill">Frame 1 / 1</div>
+    </div>
+  </main>
+
+  <!-- Bottom Timeline & Export Deck -->
+  <footer class="editor-bottom-deck">
+
+    <!-- Timeline Scrubber & Trim Section -->
+    <div class="timeline-container">
+      <div class="timeline-header-row">
+        <div class="trim-status-badge">
+          <span class="trim-label">Trim Range:</span>
+          <span class="trim-badge num" id="trim-range-badge">0.0s – 0.0s</span>
+          <span class="trim-frames-count num" id="trim-frames-count">(0 frames)</span>
+        </div>
+        <div class="playhead-info num" id="playhead-info">Playhead: Frame 1 (0.0s)</div>
+      </div>
+
+      <div class="timeline-track-wrap" id="timeline-track-wrap">
+        <div class="timeline-track" id="timeline-track">
+          <div class="timeline-range-highlight" id="timeline-range-highlight"></div>
+          <div class="timeline-playhead-needle" id="timeline-playhead-needle">
+            <div class="needle-handle"></div>
+          </div>
+        </div>
+        <div class="trim-slider-inputs">
+          <input type="range" id="trim-start-slider" min="0" max="0" value="0" step="1">
+          <input type="range" id="trim-end-slider" min="0" max="0" value="0" step="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions and Format Ribbon -->
+    <div class="actions-ribbon">
+      <div class="format-choice-wrap">
+        <span class="fmt-heading">Format:</span>
+        <div class="format-toggle" id="editor-format-toggle">
+          <button type="button" data-fmt="gif" class="on">GIF</button>
+          <button type="button" data-fmt="webp">WebP</button>
+          <button type="button" data-fmt="mp4">MP4 Video</button>
+        </div>
+      </div>
+
+      <div class="palette-choice-wrap" id="palette-choice-wrap">
+        <span class="fmt-heading">Colors:</span>
+        <div class="format-toggle palette-toggle" id="editor-palette-toggle">
+          <button type="button" data-colors="256" class="on">256</button>
+          <button type="button" data-colors="128">128</button>
+          <button type="button" data-colors="64">64</button>
+          <button type="button" data-colors="32">32</button>
+        </div>
+      </div>
+
+      <div class="deck-buttons">
+        <button type="button" class="btn-cancel" id="btn-cancel">Discard / Close</button>
+        <button type="button" class="btn-save-copy" id="btn-save-copy" hidden>Save as Copy</button>
+        <button type="button" class="btn-save" id="btn-save">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+          </svg>
+          <span id="btn-save-text">Save GIF</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Encoding Overlay Modal -->
+  <div class="encoding-overlay" id="encoding-overlay" hidden style="display: none;">
+    <div class="encoding-card">
+      <div class="encoding-spinner"></div>
+      <div class="encoding-info">
+        <div class="encoding-title">Encoding Recording…</div>
+        <div class="encoding-pct num" id="encoding-pct">0%</div>
+      </div>
+      <div class="encoding-bar"><div id="encoding-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="editor-toast" id="editor-toast"></div>
+
+</body>
+</html>

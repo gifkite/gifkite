@@ -19,7 +19,7 @@ import (
 type SCKStream struct {
 	id      uintptr
 	session unsafe.Pointer
-	onFrame func(img *image.RGBA, at time.Time)
+	onFrame func(img *image.RGBA, at time.Time, screenRect image.Rectangle)
 	stopped bool
 	mu      sync.Mutex
 }
@@ -52,7 +52,7 @@ func getSCK(id uintptr) *SCKStream {
 }
 
 //export sckFrameCallback
-func sckFrameCallback(ctx C.uintptr_t, baseAddress unsafe.Pointer, width C.int, height C.int, bytesPerRow C.int, ptsNs C.int64_t) {
+func sckFrameCallback(ctx C.uintptr_t, baseAddress unsafe.Pointer, width C.int, height C.int, bytesPerRow C.int, ptsNs C.int64_t, screenX C.int, screenY C.int, screenW C.int, screenH C.int) {
 	s := getSCK(uintptr(ctx))
 	if s == nil || baseAddress == nil || width <= 0 || height <= 0 {
 		return
@@ -83,7 +83,11 @@ func sckFrameCallback(ctx C.uintptr_t, baseAddress unsafe.Pointer, width C.int, 
 	s.mu.Unlock()
 
 	if !stopped && cb != nil {
-		cb(img, time.Now())
+		var screenRect image.Rectangle
+		if int(screenW) > 0 && int(screenH) > 0 {
+			screenRect = image.Rect(int(screenX), int(screenY), int(screenX)+int(screenW), int(screenY)+int(screenH))
+		}
+		cb(img, time.Now(), screenRect)
 	}
 }
 
@@ -91,7 +95,7 @@ func isSCKAvailable() bool {
 	return bool(C.isSCKSupported())
 }
 
-func startSCK(rect image.Rectangle, windowID int, fps int, showCursor bool, onFrame func(img *image.RGBA, at time.Time)) (*SCKStream, error) {
+func startSCK(rect image.Rectangle, windowID int, fps int, showCursor bool, onFrame func(img *image.RGBA, at time.Time, screenRect image.Rectangle)) (*SCKStream, error) {
 	if !isSCKAvailable() {
 		return nil, errors.New("ScreenCaptureKit requires macOS 12.3+")
 	}

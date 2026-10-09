@@ -20,13 +20,26 @@ type EncodeStats struct{ Captured, Written int }
 //     so they compress to long LZW runs
 //   - frames that come out identical after quantization are merged into
 //     the previous frame's delay
-func EncodeGIF(w io.Writer, frames []Frame, end time.Time, fps int, dither string, progress func(i, n int)) (EncodeStats, error) {
+func EncodeGIF(w io.Writer, frames []Frame, end time.Time, fps int, dither string, maxColors int, progress func(i, n int)) (EncodeStats, error) {
 	stats := EncodeStats{Captured: len(frames)}
 	if len(frames) == 0 {
 		return stats, errors.New("nothing was captured")
 	}
 
-	q := BuildQuantizer(frames, 255)
+	if progress != nil {
+		progress(5, 100) // Immediate feedback: 5% (quantizing palette)
+	}
+
+	if maxColors <= 0 || maxColors > 256 {
+		maxColors = 256
+	}
+	colors := maxColors - 1 // reserve 1 index for transparency
+
+	q := BuildQuantizer(frames, colors)
+	if progress != nil {
+		progress(15, 100) // Palette built: 15%
+	}
+
 	pal := append(color.Palette{}, q.Palette...)
 	trans := uint8(len(pal))
 	pal = append(pal, color.RGBA{}) // alpha 0: image/gif marks it transparent
@@ -45,9 +58,12 @@ func EncodeGIF(w io.Writer, frames []Frame, end time.Time, fps int, dither strin
 	lastFrameLen := time.Second / time.Duration(max(fps, 1))
 	elapsedCS := 0 // centiseconds already handed out as delays
 
+	nFrames := len(frames)
 	for i, f := range frames {
 		if progress != nil {
-			progress(i+1, len(frames))
+			// Frame indexing mapped from 15% to 85%
+			pct := 15 + ((i + 1) * 70 / max(1, nFrames))
+			progress(pct, 100)
 		}
 		indexFrame(f.Img, q, cur, W, H, dither)
 
@@ -97,8 +113,16 @@ func EncodeGIF(w io.Writer, frames []Frame, end time.Time, fps int, dither strin
 		prev, cur = cur, prev
 	}
 
+	if progress != nil {
+		progress(88, 100) // Compressing LZW: 88%
+	}
+
 	stats.Written = len(g.Image)
-	return stats, gif.EncodeAll(w, g)
+	err := gif.EncodeAll(w, g)
+	if progress != nil && err == nil {
+		progress(100, 100) // Completed
+	}
+	return stats, err
 }
 
 var bayer4x4 = [4][4]int{

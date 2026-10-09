@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   safeRun('copyButtons', initCopyButtons);
+  safeRun('installSwitcher', initInstallSwitcher);
   safeRun('viewfinder', initViewfinderDemo);
   safeRun('loupe', initLoupeDemo);
   safeRun('dithering', initDitheringDemo);
@@ -36,7 +37,25 @@ function initCopyButtons() {
   });
 }
 
-// 2. Tab Navigation for Interactive Demos
+// 2. Install Switcher
+function initInstallSwitcher() {
+  const tabs = document.querySelectorAll('.install-tab-btn');
+  const panes = document.querySelectorAll('.install-pane');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+
+      tab.classList.add('active');
+      const platform = tab.getAttribute('data-platform');
+      const pane = document.getElementById(`pane-${platform}`);
+      if (pane) pane.classList.add('active');
+    });
+  });
+}
+
+// 3. Tab Navigation for Interactive Demos
 function initTabs() {
   const tabs = document.querySelectorAll('.tab-btn');
   const views = document.querySelectorAll('.demo-view');
@@ -72,7 +91,7 @@ function initTabs() {
   });
 }
 
-// 3. Viewfinder Live Simulator
+// 4. Viewfinder Live Simulator (8 Handles, Aspect Ratios & Window Snapping)
 function initViewfinderDemo() {
   const container = document.getElementById('vf-container');
   const box = document.getElementById('vf-box');
@@ -80,6 +99,9 @@ function initViewfinderDemo() {
   const recTime = document.getElementById('vf-rectime');
   const recDot = document.getElementById('vf-recdot');
   const btnToggle = document.getElementById('vf-toggle-rec');
+  const btnFinish = document.getElementById('vf-btn-finish');
+  const ratioBtns = document.querySelectorAll('.vf-aspect-btn');
+  const snapTargets = document.querySelectorAll('.mock-snap-target');
 
   if (!container || !box) return;
 
@@ -100,17 +122,48 @@ function initViewfinderDemo() {
     });
   }
 
-  // Dragging logic within viewfinder container with touch/pointer support
+  if (btnFinish) {
+    btnFinish.addEventListener('click', () => {
+      const orig = btnFinish.textContent;
+      btnFinish.textContent = '✓ Copied!';
+      btnFinish.style.background = 'rgba(46, 204, 113, 0.3)';
+      btnFinish.style.color = '#2ecc71';
+      setTimeout(() => {
+        btnFinish.textContent = orig;
+        btnFinish.style.background = 'rgba(255, 59, 92, 0.2)';
+        btnFinish.style.color = 'var(--coral-light)';
+      }, 1600);
+    });
+  }
+
+  function updateDimensions() {
+    if (dimText) {
+      const w = Math.round(box.offsetWidth * 2);
+      const h = Math.round(box.offsetHeight * 2);
+      dimText.textContent = `${w} × ${h} px`;
+    }
+  }
+
+  // Dragging logic (center drag)
   let isDragging = false;
-  let startX, startY, initLeft, initTop;
+  let dragMode = null; // null or handle name ('nw', 'se', etc.)
+  let startX, startY, initLeft, initTop, initW, initH;
 
   box.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button') || e.target.closest('.vf-aspect-bar')) return;
+    const handle = e.target.closest('.h-dot');
+    if (handle) {
+      dragMode = handle.getAttribute('data-handle');
+    } else {
+      dragMode = 'move';
+    }
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
     initLeft = box.offsetLeft;
     initTop = box.offsetTop;
+    initW = box.offsetWidth;
+    initH = box.offsetHeight;
     box.style.transition = 'none';
     if (box.setPointerCapture) {
       try { box.setPointerCapture(e.pointerId); } catch (_) {}
@@ -121,28 +174,108 @@ function initViewfinderDemo() {
     if (!isDragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
+    const containerW = container.clientWidth;
+    const containerH = container.clientHeight;
 
-    const maxLeft = container.clientWidth - box.offsetWidth;
-    const maxTop = container.clientHeight - box.offsetHeight;
+    if (dragMode === 'move') {
+      const maxLeft = Math.max(0, containerW - box.offsetWidth);
+      const maxTop = Math.max(0, containerH - box.offsetHeight);
+      box.style.left = `${Math.max(0, Math.min(maxLeft, initLeft + dx))}px`;
+      box.style.top = `${Math.max(0, Math.min(maxTop, initTop + dy))}px`;
+    } else if (dragMode) {
+      let newL = initLeft;
+      let newT = initTop;
+      let newW = initW;
+      let newH = initH;
 
-    const newLeft = Math.max(0, Math.min(maxLeft, initLeft + dx));
-    const newTop = Math.max(0, Math.min(maxTop, initTop + dy));
+      if (dragMode.includes('e')) newW = Math.max(160, Math.min(containerW - initLeft, initW + dx));
+      if (dragMode.includes('s')) newH = Math.max(120, Math.min(containerH - initTop, initH + dy));
+      if (dragMode.includes('w')) {
+        const potentialW = initW - dx;
+        if (potentialW >= 160 && initLeft + dx >= 0) {
+          newL = initLeft + dx;
+          newW = potentialW;
+        }
+      }
+      if (dragMode.includes('n')) {
+        const potentialH = initH - dy;
+        if (potentialH >= 120 && initTop + dy >= 0) {
+          newT = initTop + dy;
+          newH = potentialH;
+        }
+      }
 
-    box.style.left = `${newLeft}px`;
-    box.style.top = `${newTop}px`;
-    box.style.position = 'absolute';
-
-    if (dimText) {
-      dimText.textContent = `${Math.round(box.offsetWidth * 2)} × ${Math.round(box.offsetHeight * 2)} px`;
+      box.style.left = `${newL}px`;
+      box.style.top = `${newT}px`;
+      box.style.width = `${newW}px`;
+      box.style.height = `${newH}px`;
     }
+
+    updateDimensions();
   });
 
   window.addEventListener('pointerup', () => {
     isDragging = false;
+    dragMode = null;
   });
   window.addEventListener('pointercancel', () => {
     isDragging = false;
+    dragMode = null;
   });
+
+  // Aspect ratio presets
+  ratioBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ratioBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const ratio = btn.getAttribute('data-ratio');
+      if (ratio === 'free') return;
+
+      const [rw, rh] = ratio.split(':').map(Number);
+      if (!rw || !rh) return;
+
+      box.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+      const targetRatio = rw / rh;
+      let targetW = box.offsetWidth;
+      let targetH = Math.round(targetW / targetRatio);
+
+      if (box.offsetTop + targetH > container.clientHeight) {
+        targetH = Math.max(120, container.clientHeight - box.offsetTop - 10);
+        targetW = Math.round(targetH * targetRatio);
+      }
+
+      box.style.width = `${Math.min(container.clientWidth - box.offsetLeft - 10, targetW)}px`;
+      box.style.height = `${targetH}px`;
+      setTimeout(() => {
+        box.style.transition = 'none';
+        updateDimensions();
+      }, 300);
+    });
+  });
+
+  // Mock window snapping
+  snapTargets.forEach(target => {
+    target.addEventListener('click', () => {
+      box.style.transition = 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+      box.style.left = `${target.offsetLeft}px`;
+      box.style.top = `${target.offsetTop}px`;
+      box.style.width = `${target.offsetWidth}px`;
+      box.style.height = `${target.offsetHeight}px`;
+
+      // Flash border on snapped window
+      target.style.borderColor = 'var(--coral-light)';
+      target.style.boxShadow = '0 0 20px var(--coral-glow)';
+      setTimeout(() => {
+        target.style.borderColor = '';
+        target.style.boxShadow = '';
+        box.style.transition = 'none';
+        updateDimensions();
+      }, 350);
+    });
+  });
+
+  updateDimensions();
 }
 
 // 4. Dithering Interactive Simulator
@@ -412,11 +545,66 @@ function initTrimTimeline() {
   const leftHandle = document.getElementById('trim-h-left');
   const rightHandle = document.getElementById('trim-h-right');
   const info = document.getElementById('trim-info');
+  const playBtn = document.getElementById('trim-play-toggle');
+  const speedBtns = document.querySelectorAll('.speed-btn');
 
   if (!container || !leftHandle || !rightHandle) return;
 
   let leftPct = 12;
   let rightPct = 85;
+  let speed = 1;
+  let isPlaying = false;
+  let playheadPct = 12;
+  let animId = null;
+
+  speedBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      speedBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      speed = parseFloat(btn.getAttribute('data-speed')) || 1;
+    });
+  });
+
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '⏸ Pause Loop' : '▶ Play Loop';
+      playBtn.style.color = isPlaying ? 'var(--coral-light)' : '';
+      if (isPlaying) {
+        startLoop();
+      } else {
+        if (animId) cancelAnimationFrame(animId);
+      }
+    });
+  }
+
+  function startLoop() {
+    let lastTime = performance.now();
+    function tick(now) {
+      if (!isPlaying) return;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      const range = Math.max(5, rightPct - leftPct);
+      const step = (100 / (range / 15)) * speed * dt * 0.35;
+      playheadPct += step;
+      if (playheadPct >= rightPct) playheadPct = leftPct;
+
+      const totalFrames = 120;
+      const curF = Math.round((playheadPct / 100) * totalFrames);
+      const startF = Math.round((leftPct / 100) * totalFrames);
+      const endF = Math.round((rightPct / 100) * totalFrames);
+      const count = Math.max(1, endF - startF);
+      const dur = (count / 15).toFixed(1);
+
+      if (info) {
+        info.textContent = `Frame ${curF} • Range: ${startF} → ${endF} (${count} frames, ${dur}s @ ${speed}x)`;
+      }
+
+      animId = requestAnimationFrame(tick);
+    }
+    animId = requestAnimationFrame(tick);
+  }
 
   function update() {
     leftHandle.style.left = `${leftPct}%`;
@@ -459,6 +647,7 @@ function initTrimTimeline() {
       } else {
         rightPct = Math.max(pct, leftPct + 5);
       }
+      playheadPct = leftPct;
       update();
     });
 
@@ -645,13 +834,25 @@ function renderLoupeBase() {
 
 // 8. Annotations & Privacy Redaction Interactive Demo
 let annotItems = [];
+let annotUndoStack = [];
+let annotRedoStack = [];
 let activeAnnotTool = 'arrow';
+let activeAnnotColor = '#ff3b5c';
+
+function pushAnnotHistory() {
+  annotUndoStack.push(JSON.parse(JSON.stringify(annotItems)));
+  if (annotUndoStack.length > 30) annotUndoStack.shift();
+  annotRedoStack = [];
+}
 
 function initAnnotationsDemo() {
   const stage = document.getElementById('annot-stage');
   const canvas = document.getElementById('annot-canvas');
   const resetBtn = document.getElementById('annot-reset-btn');
+  const undoBtn = document.getElementById('annot-undo-btn');
+  const redoBtn = document.getElementById('annot-redo-btn');
   const toolBtns = document.querySelectorAll('.annot-tool-btn[data-tool]');
+  const colorSwatches = document.querySelectorAll('.color-swatch');
 
   if (!canvas || !stage) return;
   canvas.style.touchAction = 'none';
@@ -664,13 +865,49 @@ function initAnnotationsDemo() {
       toolBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeAnnotTool = btn.getAttribute('data-tool');
-      // Apply immediate sample annotation for that tool
       applySampleAnnotation(activeAnnotTool);
     });
   });
 
+  colorSwatches.forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      colorSwatches.forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      activeAnnotColor = swatch.getAttribute('data-color') || '#ff3b5c';
+      // recolor last arrow/caption if present
+      if (annotItems.length > 0) {
+        const last = annotItems[annotItems.length - 1];
+        if (last.type === 'arrow' || last.type === 'caption') {
+          pushAnnotHistory();
+          last.color = activeAnnotColor;
+          renderAnnotBase();
+        }
+      }
+    });
+  });
+
+  if (undoBtn) {
+    undoBtn.addEventListener('click', () => {
+      if (annotUndoStack.length === 0) return;
+      annotRedoStack.push(JSON.parse(JSON.stringify(annotItems)));
+      annotItems = annotUndoStack.pop();
+      renderAnnotBase();
+    });
+  }
+
+  if (redoBtn) {
+    redoBtn.addEventListener('click', () => {
+      if (annotRedoStack.length === 0) return;
+      annotUndoStack.push(JSON.parse(JSON.stringify(annotItems)));
+      annotItems = annotRedoStack.pop();
+      renderAnnotBase();
+    });
+  }
+
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
+      if (annotItems.length === 0) return;
+      pushAnnotHistory();
       annotItems = [];
       renderAnnotBase();
     });
@@ -680,7 +917,8 @@ function initAnnotationsDemo() {
     const rect = canvas.getBoundingClientRect();
     const x = Math.max(0, Math.min(canvas.width, clientX - rect.left));
     const y = Math.max(0, Math.min(canvas.height, clientY - rect.top));
-    annotItems.push({ type: activeAnnotTool, x, y });
+    pushAnnotHistory();
+    annotItems.push({ type: activeAnnotTool, x, y, color: activeAnnotColor });
     renderAnnotBase();
   }
 
@@ -691,19 +929,20 @@ function initAnnotationsDemo() {
   // Default initial annotations
   annotItems = [
     { type: 'blur', x: 220, y: 135, w: 230, h: 26 },
-    { type: 'arrow', x1: 520, y1: 80, x2: 440, y2: 195, text: 'Click to Deploy' }
+    { type: 'arrow', x1: 520, y1: 80, x2: 440, y2: 195, text: 'Click to Deploy', color: '#ff3b5c' }
   ];
 }
 
 function applySampleAnnotation(tool) {
   const canvas = document.getElementById('annot-canvas');
   const w = canvas ? canvas.width : 500;
+  pushAnnotHistory();
   if (tool === 'arrow') {
-    annotItems.push({ type: 'arrow', x1: w - 80, y1: 75, x2: Math.max(120, w - 160), y2: 185, text: 'Inspect' });
+    annotItems.push({ type: 'arrow', x1: w - 80, y1: 75, x2: Math.max(120, w - 160), y2: 185, text: 'Inspect', color: activeAnnotColor });
   } else if (tool === 'blur') {
     annotItems.push({ type: 'blur' });
   } else if (tool === 'caption') {
-    annotItems.push({ type: 'caption', x: Math.max(30, (w / 2) - 80), y: 35, text: 'CONFIDENTIAL' });
+    annotItems.push({ type: 'caption', x: Math.max(30, (w / 2) - 80), y: 35, text: 'CONFIDENTIAL', color: activeAnnotColor });
   }
   renderAnnotBase();
 }
@@ -773,6 +1012,7 @@ function renderAnnotBase() {
 
   // Draw Annotations
   annotItems.forEach(item => {
+    const itemColor = item.color || activeAnnotColor || '#ff3b5c';
     if (item.type === 'blur') {
       const bx = isMobile ? tokenBoxX : (item.x || tokenBoxX);
       const by = isMobile ? 124 : (item.y || 124);
@@ -790,7 +1030,7 @@ function renderAnnotBase() {
           ctx.fillRect(bx + c * tileSize, by + r * tileSize, tileSize, tileSize);
         }
       }
-      ctx.strokeStyle = 'rgba(255, 59, 92, 0.6)';
+      ctx.strokeStyle = itemColor;
       ctx.strokeRect(bx, by, bw, bh);
     } else if (item.type === 'arrow') {
       const fromX = Math.min(w - 30, Math.max(50, item.x1 !== undefined ? Math.min(item.x1, w - 40) : (w - 60)));
@@ -799,8 +1039,8 @@ function renderAnnotBase() {
       const toY = isMobile ? btnY : (item.y2 || 185);
 
       ctx.save();
-      ctx.strokeStyle = '#ff3b5c';
-      ctx.fillStyle = '#ff3b5c';
+      ctx.strokeStyle = itemColor;
+      ctx.fillStyle = itemColor;
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
 
@@ -828,13 +1068,14 @@ function renderAnnotBase() {
       ctx.fillStyle = '#07090d';
       ctx.roundRect ? ctx.roundRect(cx, cy, capW, 26, 13) : ctx.fillRect(cx, cy, capW, 26);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 59, 92, 0.5)';
+      ctx.strokeStyle = itemColor;
       ctx.stroke();
 
-      ctx.fillStyle = '#ff6584';
+      ctx.fillStyle = itemColor;
       ctx.font = `bold ${isMobile ? '9px' : '11px'} "JetBrains Mono", Menlo, monospace`;
       ctx.fillText(isMobile ? 'REDACTED KEY' : (item.text || 'REDACTED KEY'), cx + 16, cy + 17);
     }
   });
 }
+
 

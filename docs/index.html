@@ -36,10 +36,12 @@
       <a href="#" class="logo-group" id="nav-logo">
         <img src="assets/gifkite-mark.svg" alt="Gifkite logo" class="nav-logo-mark" width="32" height="32">
         <span>Gifkite</span>
+        <span class="nav-version-badge">v1.0.0</span>
       </a>
 
       <nav aria-label="Main Navigation">
         <ul class="nav-links">
+          <li><a href="#download">Download</a></li>
           <li><a href="#features">Features</a></li>
           <li><a href="#playground">Interactive Demo</a></li>
           <li><a href="#shortcuts">Shortcuts</a></li>
@@ -63,6 +65,13 @@
       <img src="assets/gifkite-app-icon.svg" alt="Gifkite App Icon" class="hero-app-icon" width="84" height="84">
     </div>
 
+    <div>
+      <a href="#download" class="hero-release-pill">
+        <span class="hero-release-tag">v1.0.0 LIVE</span>
+        <span>Editor Studio with Trim &amp; Crop, Annotations &amp; Undo/Redo, SCK 60 FPS &rarr;</span>
+      </a>
+    </div>
+
     <div class="badge-pill">
       <img src="assets/gifkite-menubar-template-small.svg" class="badge-menubar-icon" alt="" width="14" height="14">
       <span>macOS • Windows • Linux</span>
@@ -74,41 +83,79 @@
     </h1>
 
     <p class="lead">
-      Record single application windows, multi-monitor regions, or full screens into smooth 60 FPS recordings with Bayer 4×4 spatial dithering, Apple ScreenCaptureKit hardware acceleration, in-app annotations &amp; privacy redaction, and instant drag-and-drop sharing across macOS, Windows, and Linux.
+      Record single application windows, multi-monitor regions, or full screens into silky 60 FPS recordings with Bayer 4×4 spatial dithering, Apple ScreenCaptureKit hardware acceleration, a dedicated post-recording Editor Studio with timeline trimming, canvas crop, text &amp; arrow callouts, privacy redaction, and multi-format export to GIF, WebP, and MP4 across macOS, Windows, and Linux.
     </p>
 
     <div class="hero-pills">
-      <span class="hero-pill-item"><span class="pill-dot"></span>ScreenCaptureKit 60 FPS (macOS 12.3+)</span>
+      <span class="hero-pill-item"><span class="pill-dot"></span>Editor Studio with Trim &amp; Crop</span>
+      <span class="hero-pill-item"><span class="pill-dot"></span>Annotations &amp; Undo/Redo</span>
+      <span class="hero-pill-item"><span class="pill-dot"></span>Direct 1-Click Instant Save</span>
+      <span class="hero-pill-item"><span class="pill-dot"></span>ScreenCaptureKit 60 FPS</span>
+      <span class="hero-pill-item"><span class="pill-dot"></span>Bayer 4×4 Spatial Dithering</span>
       <span class="hero-pill-item"><span class="pill-dot"></span>Animated WebP • MP4 • GIF</span>
-      <span class="hero-pill-item"><span class="pill-dot"></span>4x Pixel Loupe Magnifier</span>
-      <span class="hero-pill-item"><span class="pill-dot"></span>Privacy Mosaic Redaction</span>
-      <span class="hero-pill-item"><span class="pill-dot"></span>15s – 1h + Unlimited Stop</span>
       <span class="hero-pill-item"><span class="pill-dot"></span>macOS • Windows • Linux</span>
     </div>
 
     <div class="hero-actions">
-      <a href="https://github.com/gifkite/gifkite/releases" class="btn-primary" id="hero-download-btn">
+      <a href="#download" class="btn-primary" id="hero-download-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>Download Releases</span>
+        <span>Download v1.0.0</span>
       </a>
 
       <a href="#playground" class="btn-secondary" id="hero-try-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>
-        <span>Explore Live Demo</span>
+        <span>Interactive Sandbox</span>
       </a>
     </div>
 
-    <div class="install-bar" id="install-bar">
-      <span>$ git clone https://github.com/gifkite/gifkite.git &amp;&amp; task dev</span>
-      <button data-copy="git clone https://github.com/gifkite/gifkite.git && cd gifkite && task dev" title="Copy command" aria-label="Copy clone command">
-        Copy
-      </button>
+    <!-- Multi-Platform Quick Install Switcher -->
+    <div class="hero-install-card">
+      <div class="install-tabs" role="tablist">
+        <button class="install-tab-btn active" data-platform="mac-curl">macOS (1-Line)</button>
+        <button class="install-tab-btn" data-platform="mac-dmg">macOS (DMG)</button>
+        <button class="install-tab-btn" data-platform="win-zip">Windows (x64)</button>
+        <button class="install-tab-btn" data-platform="linux-tar">Linux (x64)</button>
+        <button class="install-tab-btn" data-platform="source">Source (Taskfile)</button>
+      </div>
+      <div class="install-pane active" id="pane-mac-curl">
+        <div class="install-bar">
+          <code>curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash</code>
+          <button class="btn-copy" data-copy="curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash">Copy</button>
+        </div>
+        <p class="install-subtext">⚡ Downloads latest release, installs to <code>/Applications</code>, and configures Gatekeeper.</p>
+      </div>
+      <div class="install-pane" id="pane-mac-dmg">
+        <div class="install-action-row">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-macOS.dmg" class="btn-dl-direct">Download Gifkite-macOS.dmg</a>
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-macOS.zip" class="btn-dl-alt">Download .zip</a>
+        </div>
+        <p class="install-subtext">🛡️ Includes drag-to-Applications symlink + bundled First-Run Gatekeeper helper script.</p>
+      </div>
+      <div class="install-pane" id="pane-win-zip">
+        <div class="install-action-row">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-Windows-x64.zip" class="btn-dl-direct">Download Gifkite-Windows-x64.zip</a>
+        </div>
+        <p class="install-subtext">🪟 Portable standalone <code>gifkite.exe</code> with GUI subsystem (zero console popup) and system tray.</p>
+      </div>
+      <div class="install-pane" id="pane-linux-tar">
+        <div class="install-action-row">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-Linux-x64.tar.gz" class="btn-dl-direct">Download Gifkite-Linux-x64.tar.gz</a>
+        </div>
+        <p class="install-subtext">🐧 Requires GTK3 &amp; WebKitGTK: <code>sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev</code></p>
+      </div>
+      <div class="install-pane" id="pane-source">
+        <div class="install-bar">
+          <code>git clone https://github.com/gifkite/gifkite.git && cd gifkite && task dev</code>
+          <button class="btn-copy" data-copy="git clone https://github.com/gifkite/gifkite.git && cd gifkite && task dev">Copy</button>
+        </div>
+        <p class="install-subtext">🛠️ Requires Go 1.25+ and Taskfile. Builds local app bundle with ad-hoc code signature.</p>
+      </div>
     </div>
   </section>
 
@@ -123,18 +170,55 @@
         </div>
         <div class="window-title">
           <img src="assets/gifkite-menubar-template-small.svg" width="14" height="14" alt="" class="window-title-icon">
-          <span>Gifkite Viewfinder Simulation — Drag the frame below</span>
+          <span>Gifkite Viewfinder Simulation — Drag, resize handles, or click windows to snap</span>
         </div>
         <div style="width: 50px;"></div>
       </div>
 
       <div class="window-content">
         <div class="interactive-viewfinder" id="vf-container">
+          <!-- Mock Windows for Interactive Snapping -->
+          <div class="mock-snap-target snap-target-editor" id="snap-editor" title="Click to snap selection to Editor window">
+            <div class="snap-titlebar">
+              <span>recorder.go — Editor</span>
+              <span class="snap-badge">Click to Snap</span>
+            </div>
+            <div class="snap-body">
+              <div><code>func StartCapture(cfg CaptureConfig) error {</code></div>
+              <div><code>&nbsp;&nbsp;sck := NewScreenCaptureKitStream()</code></div>
+              <div><code>&nbsp;&nbsp;return sck.Start(cfg.FPS)</code></div>
+              <div><code>}</code></div>
+            </div>
+          </div>
+
+          <div class="mock-snap-target snap-target-browser" id="snap-browser" title="Click to snap selection to Browser window">
+            <div class="snap-titlebar">
+              <span>Web Preview — 60 FPS Stream</span>
+              <span class="snap-badge">Click to Snap</span>
+            </div>
+            <div class="snap-body">
+              <div style="color: var(--cyan-accent); font-weight: 600;">Hardware Capture: ScreenCaptureKit</div>
+              <div class="snap-placeholder-chart"></div>
+            </div>
+          </div>
+
+          <!-- Interactive Selection Viewfinder Box -->
           <div class="viewfinder-box" id="vf-box">
+            <!-- Corner brackets -->
             <span class="corner-bracket cb-tl"></span>
             <span class="corner-bracket cb-tr"></span>
             <span class="corner-bracket cb-bl"></span>
             <span class="corner-bracket cb-br"></span>
+
+            <!-- 8 Interactive Resize Handles -->
+            <div class="h-dot h-nw" data-handle="nw"></div>
+            <div class="h-dot h-n" data-handle="n"></div>
+            <div class="h-dot h-ne" data-handle="ne"></div>
+            <div class="h-dot h-e" data-handle="e"></div>
+            <div class="h-dot h-se" data-handle="se"></div>
+            <div class="h-dot h-s" data-handle="s"></div>
+            <div class="h-dot h-sw" data-handle="sw"></div>
+            <div class="h-dot h-w" data-handle="w"></div>
 
             <div class="vf-hud">
               <div class="vf-pill vf-rec-indicator">
@@ -145,10 +229,18 @@
               <div class="vf-pill" id="vf-dim">1280 × 720 px</div>
             </div>
 
+            <!-- Floating Aspect Ratio Toolbar -->
             <div class="vf-pill-controls">
-              <span style="font-size: 0.8rem; font-weight: 600; color: #fff;">Recording Area</span>
+              <div class="vf-aspect-bar">
+                <span class="vf-aspect-label">Ratio:</span>
+                <button class="vf-aspect-btn active" data-ratio="free">Free</button>
+                <button class="vf-aspect-btn" data-ratio="16:9">16:9</button>
+                <button class="vf-aspect-btn" data-ratio="4:3">4:3</button>
+                <button class="vf-aspect-btn" data-ratio="1:1">1:1</button>
+                <button class="vf-aspect-btn" data-ratio="9:16">9:16</button>
+              </div>
               <button class="vf-btn-action" id="vf-toggle-rec">Pause</button>
-              <button class="vf-btn-action" style="background: rgba(255, 59, 92, 0.2); color: var(--coral-light);">Finish</button>
+              <button class="vf-btn-action" id="vf-btn-finish" style="background: rgba(255, 59, 92, 0.2); color: var(--coral-light);">Finish</button>
             </div>
           </div>
         </div>
@@ -156,10 +248,104 @@
     </div>
   </div>
 
+  <!-- Downloads Section -->
+  <section class="downloads-section" id="download">
+    <div class="section-head">
+      <div class="badge-pill" style="margin-bottom: 0.75rem;">Official Release v1.0.0</div>
+      <h2>Download &amp; Multi-Platform Installation</h2>
+      <p>High-performance native binaries for macOS, Windows, and Linux. No telemetry, zero bloat.</p>
+    </div>
+
+    <div class="download-cards-grid">
+      <!-- macOS Card -->
+      <div class="dl-card dl-card-highlight">
+        <div class="dl-card-badge">RECOMMENDED</div>
+        <div class="dl-os-icon">🍎</div>
+        <h3>macOS</h3>
+        <p class="dl-os-meta">Universal Apple Silicon &amp; Intel • macOS 11.0+ (ScreenCaptureKit on macOS 12.3+)</p>
+
+        <div class="dl-terminal-box">
+          <span class="dl-terminal-label">One-Line Terminal Install (Automated)</span>
+          <div class="install-bar">
+            <code>curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash</code>
+            <button class="btn-copy" data-copy="curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash">Copy</button>
+          </div>
+        </div>
+
+        <div class="dl-btn-group">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-macOS.dmg" class="btn-primary" style="width: 100%; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download Gifkite-macOS.dmg</span>
+          </a>
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-macOS.zip" class="btn-secondary" style="width: 100%; justify-content: center;">
+            <span>Download Standalone ZIP</span>
+          </a>
+        </div>
+
+        <div class="dl-features-list">
+          <span>✓ Dedicated Full Editor Studio (Trim, Crop, Annotate, Redact)</span>
+          <span>✓ Apple ScreenCaptureKit 60 FPS hardware acceleration</span>
+          <span>✓ True window isolation (records target behind occluding windows)</span>
+          <span>✓ Menu bar popover with drag-and-drop export</span>
+          <span>✓ DMG includes first-run Gatekeeper helper script</span>
+        </div>
+      </div>
+
+      <!-- Windows Card -->
+      <div class="dl-card">
+        <div class="dl-os-icon">🪟</div>
+        <h3>Windows</h3>
+        <p class="dl-os-meta">Windows 10 &amp; 11 (64-bit x64)</p>
+
+        <div class="dl-btn-group" style="margin-top: 1rem;">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-Windows-x64.zip" class="btn-primary" style="width: 100%; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download Gifkite-Windows-x64.zip</span>
+          </a>
+        </div>
+
+        <div class="dl-features-list" style="margin-top: 1.5rem;">
+          <span>✓ Standalone portable <code>gifkite.exe</code> with embedded high-res icon</span>
+          <span>✓ GUI subsystem (runs silently without a console window)</span>
+          <span>✓ System tray popover &amp; global hotkeys (<code>Ctrl+Shift+5/6/7</code>)</span>
+          <span>✓ Multi-monitor DPI aware capture</span>
+        </div>
+      </div>
+
+      <!-- Linux Card -->
+      <div class="dl-card">
+        <div class="dl-os-icon">🐧</div>
+        <h3>Linux</h3>
+        <p class="dl-os-meta">Ubuntu, Debian, Fedora, Arch (64-bit x64)</p>
+
+        <div class="dl-btn-group" style="margin-top: 1rem;">
+          <a href="https://github.com/gifkite/gifkite/releases/download/v1.0.0/Gifkite-Linux-x64.tar.gz" class="btn-primary" style="width: 100%; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download Gifkite-Linux-x64.tar.gz</span>
+          </a>
+        </div>
+
+        <div class="dl-terminal-box" style="margin-top: 1.25rem;">
+          <span class="dl-terminal-label">Prerequisite Libraries</span>
+          <div class="install-bar">
+            <code>sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev</code>
+            <button class="btn-copy" data-copy="sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev">Copy</button>
+          </div>
+        </div>
+
+        <div class="dl-features-list" style="margin-top: 1rem;">
+          <span>✓ Native GTK3 &amp; WebKitGTK tray popover</span>
+          <span>✓ X11 &amp; Wayland window snapping</span>
+          <span>✓ Headless CLI recording mode (<code>./gifkite record</code>)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Features Grid -->
   <section class="features" id="features">
     <div class="section-head">
-      <h2>Everything You Expect in a Pro GIF Tool</h2>
+      <h2>Everything You Expect in a Pro Screen Recorder</h2>
       <p>Zero compromises on quality, file weight, or capture ergonomics.</p>
     </div>
 
@@ -172,7 +358,7 @@
           </svg>
         </div>
         <h3>ScreenCaptureKit 60 FPS &amp; Isolation</h3>
-        <p>Native Apple hardware-accelerated capture pipeline on macOS 12.3+ for silky 60 FPS recording with lower battery drain. True window isolation captures your target window even when covered or moved.</p>
+        <p>Native Apple hardware-accelerated capture pipeline on macOS 12.3+ for silky 60 FPS recording with lower battery drain. True window isolation captures your target window even when covered or moved across spaces.</p>
       </article>
 
       <!-- Feature 2 -->
@@ -183,8 +369,8 @@
             <path d="M7 10l5 5 5-5"/>
           </svg>
         </div>
-        <h3>Multi-Format Export (WebP &amp; MP4)</h3>
-        <p>Export in modern animated WebP for tiny byte sizes or lightweight H.264 MP4 for instant video embedding alongside crisp, high-compatibility GIFs.</p>
+        <h3>Multi-Format Export (WebP, MP4, GIF)</h3>
+        <p>Export in modern animated WebP for up to 42% smaller file sizes, lightweight H.264 MP4 for instant browser and chat playback, or crisp Bayer-quantized GIFs with universal compatibility.</p>
       </article>
 
       <!-- Feature 3 -->
@@ -198,10 +384,25 @@
           </svg>
         </div>
         <h3>4x Pixel Loupe Magnifier</h3>
-        <p>Real-time circular zoom lens under the cursor with crosshairs and coordinate readouts while dragging or resizing region edges for pixel-perfect window alignment.</p>
+        <p>Real-time circular zoom lens under the cursor with pixel crosshair and coordinate badge while dragging or adjusting selection handles for pixel-perfect edge alignment.</p>
       </article>
 
       <!-- Feature 4 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M9 3v18"></path>
+            <path d="M15 3v18"></path>
+            <path d="M3 9h18"></path>
+            <path d="M3 15h18"></path>
+          </svg>
+        </div>
+        <h3>Interactive Picker &amp; Window Snapping</h3>
+        <p>Hover over any application window to highlight and snap to its exact frame. Drag 8 resize handles with aspect ratio presets (<code>16:9</code>, <code>4:3</code>, <code>1:1</code>, <code>Free</code>) and live dimension inputs.</p>
+      </article>
+
+      <!-- Feature 5 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -211,11 +412,35 @@
             <circle cx="11" cy="11" r="2"/>
           </svg>
         </div>
-        <h3>Annotations &amp; Privacy Redact</h3>
-        <p>Add directional arrows, text captions, and mosaic blur boxes to obscure passwords, API keys, or private tokens directly in the review editor before saving.</p>
+        <h3>Annotations &amp; Undo / Redo</h3>
+        <p>Add directional callout arrows, custom text captions, and mosaic privacy blur boxes with complete multi-level Undo &amp; Redo (<code>⌘Z</code> / <code>⇧⌘Z</code>) history to protect sensitive API keys, tokens, and passwords.</p>
       </article>
 
-      <!-- Feature 5 -->
+      <!-- Feature 6 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+            <line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </div>
+        <h3>Editor Studio: Trim &amp; Canvas Crop</h3>
+        <p>Scrub frame-by-frame with interactive dual In/Out trim markers, drag interactive crop handles on the canvas to isolate any sub-area, and preview loop speed (<code>1x</code>, <code>1.5x</code>, <code>2x</code>) before exporting.</p>
+      </article>
+
+      <!-- Feature 7 -->
+      <article class="feature-card">
+        <div class="feature-icon-wrapper">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h3>Direct 1-Click Save or Edit Later</h3>
+        <p>Record and immediately save directly into your preferred format without mandatory review delays. Your recordings stay in the spacious Popover Library ready to be reopened in the Editor Studio anytime.</p>
+      </article>
+
+      <!-- Feature 8 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -227,7 +452,7 @@
         <p>Advanced palette quantization preserves silky smooth gradients without the noisy snow or ballooning byte sizes typical of error diffusion algorithms.</p>
       </article>
 
-      <!-- Feature 6 -->
+      <!-- Feature 8 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -239,25 +464,25 @@
         <p>Never lose the mouse again. Enjoy customizable spotlight halos, distinct cursor tracking, and expanding animated ripple rings on mouse clicks.</p>
       </article>
 
-      <!-- Feature 7 -->
+      <!-- Feature 9 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-            <line x1="19" y1="5" x2="19" y2="19"/>
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
           </svg>
         </div>
-        <h3>Post-Recording Trim &amp; Review</h3>
-        <p>Scrub through recorded frames, dial in precise In/Out trim markers, and inspect the loop before saving to disk. Perfect loops every time.</p>
+        <h3>App Invisibility &amp; Zero Clutter</h3>
+        <p>Gifkite's floating recording pill, picker, and overlay controls are automatically excluded from the recording frames using OS-level capture sharing affinity, ensuring spotless recordings.</p>
       </article>
 
-      <!-- Feature 8 -->
+      <!-- Feature 10 -->
       <article class="feature-card">
         <div class="feature-icon-wrapper">
           <img src="assets/gifkite-menubar-template.svg" width="24" height="24" alt="Menu Bar Icon" class="feature-menubar-icon">
         </div>
-        <h3>Native Drag &amp; Drop &amp; CLI Headless</h3>
-        <p>Drag recordings straight into Slack, Discord, Finder, or Google Chrome. Or trigger automated headless recordings from CI and terminals with <code>gifkite record</code>.</p>
+        <h3>System Tray &amp; Headless CLI</h3>
+        <p>Click the tray icon to drag recordings straight into Slack, Discord, or Finder. Or trigger automated headless recordings from CI and scripts with <code>gifkite record</code>.</p>
       </article>
     </div>
   </section>
@@ -339,10 +564,19 @@
           </div>
           <div class="timeline-info">
             <span id="trim-info">Frames: 14 → 102 (88 frames, 5.8s loop at 15 FPS)</span>
-            <button class="vf-btn-action" style="padding: 0.35rem 0.8rem; background: var(--coral-primary); color: #fff;">Save Trimmed GIF</button>
+            <button class="vf-btn-action" style="padding: 0.35rem 0.8rem; background: var(--coral-primary); color: #fff;">Save Trimmed Loop</button>
+          </div>
+          <div class="timeline-controls-bar">
+            <div class="timeline-speed-group">
+              <span style="font-size: 0.75rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase;">Speed:</span>
+              <button class="speed-btn active" data-speed="1">1x</button>
+              <button class="speed-btn" data-speed="1.5">1.5x</button>
+              <button class="speed-btn" data-speed="2">2x</button>
+            </div>
+            <button class="vf-btn-action" id="trim-play-toggle" style="background: rgba(255, 255, 255, 0.08);">▶ Play Loop</button>
           </div>
         </div>
-        <p class="sandbox-caption">Frame-by-frame review scrubber with dual in/out trim handles</p>
+        <p class="sandbox-caption">Frame-by-frame review scrubber with dual in/out trim handles and playback speed selector</p>
       </div>
 
       <!-- Demo: Annotations & Redact -->
@@ -363,13 +597,30 @@
                 <span>Pill Caption</span>
               </button>
             </div>
-            <button class="annot-tool-btn" id="annot-reset-btn" style="color: var(--coral-light);">Reset Canvas</button>
+            <div class="annot-color-picker">
+              <span style="font-size: 0.75rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase;">Color:</span>
+              <button class="color-swatch active" data-color="#ff3b5c" style="background: #ff3b5c;" title="Coral Red" aria-label="Coral Red"></button>
+              <button class="color-swatch" data-color="#00d2d3" style="background: #00d2d3;" title="Cyan" aria-label="Cyan"></button>
+              <button class="color-swatch" data-color="#ff9f43" style="background: #ff9f43;" title="Amber" aria-label="Amber"></button>
+              <button class="color-swatch" data-color="#2ecc71" style="background: #2ecc71;" title="Emerald" aria-label="Emerald"></button>
+            </div>
+            <div class="annot-history-group" style="display: flex; gap: 0.4rem; margin-left: auto;">
+              <button class="annot-tool-btn" id="annot-undo-btn" title="Undo (Cmd+Z)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                <span>Undo</span>
+              </button>
+              <button class="annot-tool-btn" id="annot-redo-btn" title="Redo (Cmd+Shift+Z)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg>
+                <span>Redo</span>
+              </button>
+              <button class="annot-tool-btn" id="annot-reset-btn" style="color: var(--coral-light);">Clear</button>
+            </div>
           </div>
           <div class="annot-canvas-stage" id="annot-stage">
             <canvas id="annot-canvas"></canvas>
           </div>
         </div>
-        <p class="sandbox-caption">Click tools to stamp arrows, add captions, or apply mosaic blur over sensitive tokens</p>
+        <p class="sandbox-caption">Click tools to stamp arrows, add captions, or apply mosaic blur over sensitive tokens with color accents</p>
       </div>
 
       <!-- Demo: Multi-Format Comparison -->
@@ -417,7 +668,7 @@
   <!-- Shortcuts Reference Table -->
   <section class="shortcuts" id="shortcuts">
     <div class="section-head">
-      <h2>Keyboard Shortcuts</h2>
+      <h2>Keyboard Shortcuts Reference</h2>
       <p>Engineered for maximum velocity with familiar Gifox-style ergonomics.</p>
     </div>
 
@@ -442,7 +693,7 @@
             <td>Draw or resize capture box with aspect ratio presets</td>
           </tr>
           <tr>
-            <td><strong>Full Screen</strong></td>
+            <td><strong>Full Screen Capture</strong></td>
             <td><div class="key-combo"><kbd>⌘ Cmd / Ctrl</kbd><kbd>⇧ Shift</kbd><kbd>7</kbd></div></td>
             <td>Immediately record the display under your cursor</td>
           </tr>
@@ -456,6 +707,21 @@
             <td><div class="key-combo"><kbd>⌘ Cmd / Ctrl</kbd><kbd>Escape</kbd></div></td>
             <td>Complete recording and launch Review Editor</td>
           </tr>
+          <tr>
+            <td><strong>Aspect Ratio Lock</strong></td>
+            <td><div class="key-combo"><kbd>⇧ Shift</kbd><span>+ Drag</span></div></td>
+            <td>Lock proportional aspect ratio when dragging resize handles</td>
+          </tr>
+          <tr>
+            <td><strong>Start / Confirm</strong></td>
+            <td><div class="key-combo"><kbd>Space</kbd> / <kbd>Enter</kbd></div></td>
+            <td>Start recording active selection inside picker overlay</td>
+          </tr>
+          <tr>
+            <td><strong>Cancel Selection</strong></td>
+            <td><div class="key-combo"><kbd>Escape</kbd></div></td>
+            <td>Dismiss picker overlay without starting recording</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -465,7 +731,7 @@
   <section class="docs" id="docs">
     <div class="section-head">
       <h2>Build &amp; CLI Documentation</h2>
-      <p>Simple to compile, easy to integrate into CI/CD pipelines.</p>
+      <p>Simple to compile, easy to integrate into CI/CD pipelines and headless environments.</p>
     </div>
 
     <div class="docs-code-block">
@@ -485,14 +751,28 @@
 
     <div class="docs-code-block" style="margin-top: 2rem;">
       <div class="code-header">
-        <span>Terminal — Headless CLI Recording</span>
-        <button class="vf-btn-action" data-copy="./gifkite record -region 100,100,800,600 -duration 10s -dither bayer -cursor -highlight -ripples -o demo.gif">Copy</button>
+        <span>Terminal — Headless Multi-Format Recording CLI</span>
+        <button class="vf-btn-action" data-copy="./gifkite record -format webp -region 100,100,800,600 -duration 10s -dither bayer -cursor -highlight -ripples -o demo.webp">Copy</button>
       </div>
-      <pre><code><span class="token-comment"># Record 10 seconds of a specific screen region with full effects</span>
-<span class="token-cmd">./gifkite</span> record <span class="token-arg">-region</span> 100,100,800,600 <span class="token-arg">-duration</span> 10s <span class="token-arg">-dither</span> bayer <span class="token-arg">-cursor</span> <span class="token-arg">-highlight</span> <span class="token-arg">-ripples</span> <span class="token-arg">-o</span> demo.gif
+      <pre><code><span class="token-comment"># Record 10s region to animated WebP with Bayer dithering</span>
+<span class="token-cmd">./gifkite</span> record <span class="token-arg">-format</span> webp <span class="token-arg">-region</span> 100,100,800,600 <span class="token-arg">-duration</span> 10s <span class="token-arg">-dither</span> bayer <span class="token-arg">-cursor</span> <span class="token-arg">-highlight</span> <span class="token-arg">-ripples</span> <span class="token-arg">-o</span> demo.webp
+
+<span class="token-comment"># Record full screen to lightweight H.264 MP4 video</span>
+<span class="token-cmd">./gifkite</span> record <span class="token-arg">-format</span> mp4 <span class="token-arg">-duration</span> 15s <span class="token-arg">-o</span> screen-record.mp4
 
 <span class="token-comment"># Inspect available displays and pixel bounds</span>
 <span class="token-cmd">./gifkite</span> displays</code></pre>
+    </div>
+
+    <div class="docs-code-block" style="margin-top: 2rem;">
+      <div class="code-header">
+        <span>Terminal — macOS Gatekeeper First-Run Helper</span>
+        <button class="vf-btn-action" data-copy="xattr -cr /Applications/Gifkite.app">Copy</button>
+      </div>
+      <pre><code><span class="token-comment"># If macOS displays "Apple could not verify Gifkite is free of malware":</span>
+<span class="token-cmd">xattr</span> -cr /Applications/Gifkite.app
+
+<span class="token-comment"># Or double-click the bundled "Open Gifkite (First Run).command" inside the DMG</span></code></pre>
     </div>
   </section>
 

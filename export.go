@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
@@ -39,7 +40,7 @@ func findBinary(name string) string {
 }
 
 // EncodeExport writes the frames in the requested format (gif, webp, mp4).
-func EncodeExport(path string, format string, frames []Frame, end time.Time, fps int, dither string, progress func(i, n int)) error {
+func EncodeExport(path string, format string, frames []Frame, end time.Time, fps int, dither string, maxColors int, progress func(i, n int)) error {
 	if len(frames) == 0 {
 		return errors.New("nothing was captured")
 	}
@@ -47,7 +48,7 @@ func EncodeExport(path string, format string, frames []Frame, end time.Time, fps
 	format = strings.ToLower(format)
 	switch format {
 	case "webp":
-		return encodeWebP(path, frames, end, fps, dither, progress)
+		return encodeWebP(path, frames, end, fps, dither, maxColors, progress)
 	case "mp4":
 		return encodeMP4(path, frames, end, fps, progress)
 	default:
@@ -57,21 +58,31 @@ func EncodeExport(path string, format string, frames []Frame, end time.Time, fps
 			return err
 		}
 		defer f.Close()
-		_, err = EncodeGIF(f, frames, end, fps, dither, progress)
+		_, err = EncodeGIF(f, frames, end, fps, dither, maxColors, progress)
 		return err
 	}
 }
 
-func encodeWebP(path string, frames []Frame, end time.Time, fps int, dither string, progress func(i, n int)) error {
+func encodeWebP(path string, frames []Frame, end time.Time, fps int, dither string, maxColors int, progress func(i, n int)) error {
 	gif2webp := findBinary("gif2webp")
 	if gif2webp != "" {
+		if progress != nil {
+			progress(5, 100)
+		}
 		// Encode to a temporary GIF first, then convert with gif2webp for optimal delta-frame compression
 		tmpGif := path + ".tmp.gif"
 		f, err := os.Create(tmpGif)
 		if err != nil {
 			return err
 		}
-		_, err = EncodeGIF(f, frames, end, fps, dither, progress)
+		// Scale GIF progress to 0%..85%
+		gifProgress := func(i, n int) {
+			if progress != nil && n > 0 {
+				pct := i * 85 / n
+				progress(pct, 100)
+			}
+		}
+		_, err = EncodeGIF(f, frames, end, fps, dither, maxColors, gifProgress)
 		f.Close()
 		if err != nil {
 			os.Remove(tmpGif)
@@ -79,18 +90,33 @@ func encodeWebP(path string, frames []Frame, end time.Time, fps int, dither stri
 		}
 		defer os.Remove(tmpGif)
 
+		if progress != nil {
+			progress(88, 100)
+		}
 		cmd := exec.Command(gif2webp, "-q", "80", "-m", "4", tmpGif, "-o", path)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("gif2webp failed: %v (%s)", err, string(out))
+			return fmt.Errorf("gif2webp failed: %v (%s)", err, strings.TrimSpace(string(out)))
+		}
+		if progress != nil {
+			progress(100, 100)
 		}
 		return nil
 	}
 
 	ffmpeg := findBinary("ffmpeg")
 	if ffmpeg != "" {
+		if progress != nil {
+			progress(5, 100)
+		}
 		// Use ffmpeg with animated webp
 		bounds := frames[0].Img.Bounds()
-		W, H := bounds.Dx(), bounds.Dy()
+		W, H := bounds.Dx() &^ 1, bounds.Dy() &^ 1
+		if W < 2 {
+			W = 2
+		}
+		if H < 2 {
+			H = 2
+		}
 
 		cmd := exec.Command(ffmpeg,
 			"-y",
@@ -105,26 +131,56 @@ func encodeWebP(path string, frames []Frame, end time.Time, fps int, dither stri
 			path,
 		)
 
+		var stderrBuf bytes.Buffer
+		cmd.Stderr = &stderrBuf
+
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			return err
 		}
 		if err := cmd.Start(); err != nil {
-			return err
+			return fmt.Errorf("ffmpeg webp start failed: %w (%s)", err, strings.TrimSpace(stderrBuf.String()))
 		}
 
 		go func() {
 			defer stdin.Close()
+			needsCrop := (W != bounds.Dx() || H != bounds.Dy())
+			var cropBuf *image.RGBA
+			if needsCrop {
+				cropBuf = image.NewRGBA(image.Rect(0, 0, W, H))
+			}
+
+			nFrames := len(frames)
 			for i, f := range frames {
 				if progress != nil {
-					progress(i+1, len(frames))
+					pct := 5 + ((i + 1) * 90 / max(1, nFrames))
+					progress(pct, 100)
 				}
-				stdin.Write(f.Img.Pix)
+				if needsCrop {
+					for y := 0; y < H; y++ {
+						copy(cropBuf.Pix[y*cropBuf.Stride:y*cropBuf.Stride+W*4],
+							f.Img.Pix[y*f.Img.Stride:y*f.Img.Stride+W*4])
+					}
+					if _, err := stdin.Write(cropBuf.Pix); err != nil {
+						return
+					}
+				} else {
+					if _, err := stdin.Write(f.Img.Pix); err != nil {
+						return
+					}
+				}
 			}
 		}()
 
 		if err := cmd.Wait(); err != nil {
+			errMsg := strings.TrimSpace(stderrBuf.String())
+			if errMsg != "" {
+				return fmt.Errorf("ffmpeg webp failed: %v: %s", err, errMsg)
+			}
 			return fmt.Errorf("ffmpeg webp failed: %v", err)
+		}
+		if progress != nil {
+			progress(100, 100)
 		}
 		return nil
 	}
@@ -136,6 +192,10 @@ func encodeMP4(path string, frames []Frame, end time.Time, fps int, progress fun
 	ffmpeg := findBinary("ffmpeg")
 	if ffmpeg == "" {
 		return errors.New("install ffmpeg (brew install ffmpeg) to export to MP4")
+	}
+
+	if progress != nil {
+		progress(5, 100)
 	}
 
 	bounds := frames[0].Img.Bounds()
@@ -163,12 +223,15 @@ func encodeMP4(path string, frames []Frame, end time.Time, fps int, progress fun
 		path,
 	)
 
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("ffmpeg mp4 start failed: %w (%s)", err, strings.TrimSpace(stderrBuf.String()))
 	}
 
 	go func() {
@@ -179,9 +242,11 @@ func encodeMP4(path string, frames []Frame, end time.Time, fps int, progress fun
 			cropBuf = image.NewRGBA(image.Rect(0, 0, w, h))
 		}
 
+		nFrames := len(frames)
 		for i, f := range frames {
 			if progress != nil {
-				progress(i+1, len(frames))
+				pct := 5 + ((i + 1) * 90 / max(1, nFrames))
+				progress(pct, 100)
 			}
 			if needsCrop {
 				// Copy cropped area
@@ -189,15 +254,26 @@ func encodeMP4(path string, frames []Frame, end time.Time, fps int, progress fun
 					copy(cropBuf.Pix[y*cropBuf.Stride:y*cropBuf.Stride+w*4],
 						f.Img.Pix[y*f.Img.Stride:y*f.Img.Stride+w*4])
 				}
-				stdin.Write(cropBuf.Pix)
+				if _, err := stdin.Write(cropBuf.Pix); err != nil {
+					return
+				}
 			} else {
-				stdin.Write(f.Img.Pix)
+				if _, err := stdin.Write(f.Img.Pix); err != nil {
+					return
+				}
 			}
 		}
 	}()
 
 	if err := cmd.Wait(); err != nil {
+		errMsg := strings.TrimSpace(stderrBuf.String())
+		if errMsg != "" {
+			return fmt.Errorf("ffmpeg mp4 failed: %v: %s", err, errMsg)
+		}
 		return fmt.Errorf("ffmpeg mp4 failed: %v", err)
+	}
+	if progress != nil {
+		progress(100, 100)
 	}
 	return nil
 }

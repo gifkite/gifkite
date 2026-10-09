@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/draw"
 	"image/jpeg"
 	"image/png"
 	"os"
@@ -20,8 +21,8 @@ import (
 )
 
 const (
-	controlsW = 278
-	controlsH = 52
+	controlsW = 296
+	controlsH = 56
 )
 
 // Phases, in order. The frontend renders from these.
@@ -44,6 +45,10 @@ type NormRect struct {
 	Y        float64 `json:"y"`
 	W        float64 `json:"w"`
 	H        float64 `json:"h"`
+	PxX      int     `json:"pxX,omitempty"`
+	PxY      int     `json:"pxY,omitempty"`
+	PxW      int     `json:"pxW,omitempty"`
+	PxH      int     `json:"pxH,omitempty"`
 	WindowID int     `json:"windowId,omitempty"`
 }
 
@@ -62,28 +67,37 @@ type ReviewInfo struct {
 	NumFrames int     `json:"numFrames"`
 	Duration  float64 `json:"duration"` // total seconds
 	FPS       int     `json:"fps"`
+	FileName  string  `json:"fileName,omitempty"`
+}
+
+type CropRect struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
 }
 
 // GifService is bound to the frontend: its exported methods are callable
 // from JS as main.GifService.<Method>.
 type GifService struct {
-	app                       *application.App
-	tray                      *application.SystemTray
-	popover, picker, controls *application.WebviewWindow
+	app                               *application.App
+	tray                              *application.SystemTray
+	popover, picker, controls, editor *application.WebviewWindow
 
-	mu            sync.Mutex
-	phase         string
-	rec           *Recorder
-	started       time.Time
-	last          *NormRect
-	frozen        []byte
-	abort         chan struct{}
-	settings      Settings
-	lastErr       string
-	thumbs        *thumbCache
-	pendingFrames []Frame
-	pendingEnd    time.Time
-	isDragging    bool
+	mu             sync.Mutex
+	phase          string
+	rec            *Recorder
+	started        time.Time
+	last           *NormRect
+	frozen         []byte
+	abort          chan struct{}
+	settings       Settings
+	lastErr        string
+	thumbs         *thumbCache
+	pendingFrames  []Frame
+	pendingEnd     time.Time
+	activeEditFile string
+	isDragging     bool
 
 	activeDisplay int
 	activeScreen  *application.Screen
@@ -178,7 +192,11 @@ func (s *GifService) GetState() State {
 	return st
 }
 
-func (s *GifService) broadcast() { s.app.Event.Emit("state", s.GetState()) }
+func (s *GifService) broadcast() {
+	if s.app != nil && s.app.Event != nil {
+		s.app.Event.Emit("state", s.GetState())
+	}
+}
 
 // transition moves from one phase to another only if we're in `from`.
 func (s *GifService) transition(from, to string) bool {
@@ -202,9 +220,17 @@ func (s *GifService) fail(err error) {
 	s.mu.Unlock()
 	s.controls.Hide()
 	s.picker.Hide()
-	s.tray.SetLabel("")
+	if s.editor != nil {
+		s.editor.Hide()
+	}
+	if s.tray != nil {
+		s.tray.SetLabel("")
+		s.tray.ShowWindow()
+	}
 	s.broadcast()
-	s.tray.ShowWindow()
+	if s.app != nil && s.app.Event != nil {
+		s.app.Event.Emit("encode:error", err.Error())
+	}
 }
 
 // Toggle is what the global hotkey does: start, or stop whatever is running.
@@ -492,10 +518,21 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 		info := s.reviewInfoLocked()
 		s.mu.Unlock()
 
-		s.tray.SetLabel("Review")
+		if s.tray != nil {
+			s.tray.SetLabel("Editor")
+		}
 		s.broadcast()
-		s.app.Event.Emit("review:open", info)
-		s.tray.ShowWindow()
+		if s.app != nil && s.app.Event != nil {
+			s.app.Event.Emit("review:open", info)
+		}
+		if s.popover != nil {
+			s.popover.Hide()
+		}
+		if s.editor != nil {
+			s.editor.Center()
+			s.editor.Show()
+			s.editor.Focus()
+		}
 		return
 	}
 	s.phase = phaseEncoding
@@ -509,7 +546,7 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 func (s *GifService) reviewInfoLocked() ReviewInfo {
 	n := len(s.pendingFrames)
 	if n == 0 {
-		return ReviewInfo{NumFrames: 0, Duration: 0, FPS: s.settings.FPS}
+		return ReviewInfo{NumFrames: 0, Duration: 0, FPS: s.settings.FPS, FileName: s.activeEditFile}
 	}
 	dur := s.pendingEnd.Sub(s.pendingFrames[0].At).Seconds()
 	if dur <= 0 {
@@ -519,6 +556,7 @@ func (s *GifService) reviewInfoLocked() ReviewInfo {
 		NumFrames: n,
 		Duration:  dur,
 		FPS:       s.settings.FPS,
+		FileName:  s.activeEditFile,
 	}
 }
 
@@ -547,8 +585,95 @@ func (s *GifService) GetPreviewFrame(i int) []byte {
 	return buf.Bytes()
 }
 
-// ConfirmReview trims the pending frames to [startIdx, endIdx] inclusive, applies annotations, and encodes the recording in the requested format.
-func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotations []Annotation) error {
+// OpenInEditor opens an existing recording in the Review / Trim editor.
+func (s *GifService) OpenInEditor(name string) error {
+	p, err := s.recordingPath(name)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	if s.phase == phaseRecording || s.phase == phaseCountdown {
+		s.mu.Unlock()
+		return errors.New("cannot edit during recording")
+	}
+	s.mu.Unlock()
+
+	frames, end, err := DecodeMediaFile(p)
+	if err != nil {
+		return fmt.Errorf("failed to open recording: %w", err)
+	}
+	if len(frames) == 0 {
+		return errors.New("recording has no frames")
+	}
+
+	s.mu.Lock()
+	s.pendingFrames = frames
+	s.pendingEnd = end
+	s.activeEditFile = name
+	s.phase = phaseReview
+	info := s.reviewInfoLocked()
+	s.mu.Unlock()
+
+	if s.tray != nil {
+		s.tray.SetLabel("Editor")
+	}
+	s.broadcast()
+	if s.app != nil && s.app.Event != nil {
+		s.app.Event.Emit("review:open", info)
+	}
+	if s.popover != nil {
+		s.popover.Hide()
+	}
+	if s.editor != nil {
+		s.editor.Center()
+		s.editor.Show()
+		s.editor.Focus()
+	}
+	return nil
+}
+
+// ExportRecording converts an existing recording in the library directly to targetFormat.
+func (s *GifService) ExportRecording(name string, targetFormat string) (string, error) {
+	srcPath, err := s.recordingPath(name)
+	if err != nil {
+		return "", err
+	}
+	targetFormat = strings.ToLower(strings.TrimPrefix(targetFormat, "."))
+	if targetFormat == "" {
+		targetFormat = "gif"
+	}
+
+	frames, end, err := DecodeMediaFile(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode recording: %w", err)
+	}
+	if len(frames) == 0 {
+		return "", errors.New("no frames found in recording")
+	}
+
+	s.mu.Lock()
+	fps, dir, dither, maxColors := s.settings.FPS, s.settings.OutputDir, s.settings.Dither, s.settings.MaxColors
+	s.mu.Unlock()
+
+	outName := defaultNameWithExt("." + targetFormat)
+	outPath := filepath.Join(dir, outName)
+
+	err = EncodeExport(outPath, targetFormat, frames, end, fps, dither, maxColors, nil)
+	if err != nil {
+		os.Remove(outPath)
+		return "", fmt.Errorf("export encoding failed: %w", err)
+	}
+
+	if s.app != nil && s.app.Event != nil {
+		s.app.Event.Emit("library", outName)
+	}
+	showNotification("Gifkite", fmt.Sprintf("Exported as %s (%s)", strings.ToUpper(targetFormat), outName))
+	return outName, nil
+}
+
+// ConfirmReview trims the pending frames to [startIdx, endIdx] inclusive, applies annotations, optional canvas crop, and encodes the recording.
+func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotations []Annotation, saveAsCopy bool, crop *CropRect, maxColors int) error {
 	s.mu.Lock()
 	if s.phase != phaseReview || len(s.pendingFrames) == 0 {
 		s.mu.Unlock()
@@ -566,14 +691,57 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 
 	trimmed := make([]Frame, endIdx-startIdx+1)
 	for i, orig := range s.pendingFrames[startIdx : endIdx+1] {
+		var frameImg *image.RGBA
 		if len(annotations) > 0 && orig.Img != nil {
 			clone := image.NewRGBA(orig.Img.Bounds())
 			copy(clone.Pix, orig.Img.Pix)
 			ApplyAnnotations(clone, annotations)
-			trimmed[i] = Frame{Img: clone, At: orig.At}
+			frameImg = clone
 		} else {
-			trimmed[i] = orig
+			frameImg = orig.Img
 		}
+
+		if crop != nil && crop.W > 0 && crop.H > 0 && frameImg != nil {
+			b := frameImg.Bounds()
+			imgW, imgH := b.Dx(), b.Dy()
+			var x0, y0, w, h int
+			if crop.W <= 1.0 && crop.H <= 1.0 && crop.X <= 1.0 && crop.Y <= 1.0 {
+				x0 = int(crop.X * float64(imgW))
+				y0 = int(crop.Y * float64(imgH))
+				w = int(crop.W * float64(imgW))
+				h = int(crop.H * float64(imgH))
+			} else {
+				x0 = int(crop.X)
+				y0 = int(crop.Y)
+				w = int(crop.W)
+				h = int(crop.H)
+			}
+
+			if x0 < 0 {
+				x0 = 0
+			}
+			if y0 < 0 {
+				y0 = 0
+			}
+			if x0+w > imgW {
+				w = imgW - x0
+			}
+			if y0+h > imgH {
+				h = imgH - y0
+			}
+
+			if strings.ToLower(format) == "mp4" {
+				w = w &^ 1
+				h = h &^ 1
+			}
+			if w > 0 && h > 0 {
+				cropped := image.NewRGBA(image.Rect(0, 0, w, h))
+				srcRect := image.Rect(b.Min.X+x0, b.Min.Y+y0, b.Min.X+x0+w, b.Min.Y+y0+h)
+				draw.Draw(cropped, cropped.Bounds(), frameImg, srcRect.Min, draw.Src)
+				frameImg = cropped
+			}
+		}
+		trimmed[i] = Frame{Img: frameImg, At: orig.At}
 	}
 
 	var end time.Time
@@ -587,14 +755,46 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 		format = s.settings.Format
 	}
 
+	existingFile := s.activeEditFile
+	s.activeEditFile = ""
 	s.pendingFrames = nil
 	s.phase = phaseEncoding
 	s.mu.Unlock()
 
-	s.tray.SetLabel("Saving…")
+	// Keep s.editor visible with its encoding overlay modal so user can see progress!
+	if s.tray != nil {
+		s.tray.SetLabel("Saving…")
+	}
 	s.broadcast()
-	go s.encodeAndSave(trimmed, end, format)
+	go s.encodeAndSaveTarget(trimmed, end, format, existingFile, saveAsCopy, maxColors)
 	return nil
+}
+
+// FocusEditor brings the editor studio window to front.
+func (s *GifService) FocusEditor() {
+	if s.editor != nil {
+		s.editor.Show()
+		s.editor.Focus()
+	}
+}
+
+// CloseEditor hides the editor studio window and resets review state if active.
+func (s *GifService) CloseEditor() {
+	s.mu.Lock()
+	if s.phase == phaseReview {
+		s.pendingFrames = nil
+		s.phase = phaseIdle
+	}
+	s.activeEditFile = ""
+	s.mu.Unlock()
+
+	if s.editor != nil {
+		s.editor.Hide()
+	}
+	if s.tray != nil && s.phase == phaseIdle {
+		s.tray.SetLabel("")
+	}
+	s.broadcast()
 }
 
 // DiscardReview discards the pending recording without saving.
@@ -605,16 +805,29 @@ func (s *GifService) DiscardReview() {
 		return
 	}
 	s.pendingFrames = nil
+	s.activeEditFile = ""
 	s.phase = phaseIdle
 	s.mu.Unlock()
 
-	s.tray.SetLabel("")
+	if s.editor != nil {
+		s.editor.Hide()
+	}
+	if s.tray != nil {
+		s.tray.SetLabel("")
+	}
 	s.broadcast()
 }
 
 func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string) {
+	s.encodeAndSaveTarget(frames, end, format, "", false, 0)
+}
+
+func (s *GifService) encodeAndSaveTarget(frames []Frame, end time.Time, format string, existingFile string, saveAsCopy bool, maxColors int) {
 	s.mu.Lock()
 	fps, dir, dither := s.settings.FPS, s.settings.OutputDir, s.settings.Dither
+	if maxColors <= 0 {
+		maxColors = s.settings.MaxColors
+	}
 	if format == "" {
 		format = s.settings.Format
 	}
@@ -629,7 +842,20 @@ func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string)
 		s.fail(err)
 		return
 	}
-	path := filepath.Join(dir, defaultNameWithExt("."+format))
+
+	var path string
+	var oldPathToRemove string
+	if existingFile != "" && !saveAsCopy {
+		oldExt := filepath.Ext(existingFile)
+		targetExt := "." + format
+		baseWithoutExt := strings.TrimSuffix(existingFile, oldExt)
+		path = filepath.Join(dir, baseWithoutExt+targetExt)
+		if strings.ToLower(oldExt) != strings.ToLower(targetExt) {
+			oldPathToRemove = filepath.Join(dir, existingFile)
+		}
+	} else {
+		path = filepath.Join(dir, defaultNameWithExt("."+format))
+	}
 
 	// Pre-populate the thumbnail cache with a PNG of the first frame
 	if len(frames) > 0 && frames[0].Img != nil {
@@ -647,10 +873,12 @@ func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string)
 	}
 
 	lastPct := -1
-	err := EncodeExport(path, format, frames, end, fps, dither, func(i, n int) {
+	err := EncodeExport(path, format, frames, end, fps, dither, maxColors, func(i, n int) {
 		if pct := i * 100 / n; pct != lastPct {
 			lastPct = pct
-			s.app.Event.Emit("encode", pct)
+			if s.app != nil && s.app.Event != nil {
+				s.app.Event.Emit("encode", pct)
+			}
 		}
 	})
 	if err != nil {
@@ -659,15 +887,27 @@ func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string)
 		return
 	}
 
+	if oldPathToRemove != "" && oldPathToRemove != path {
+		os.Remove(oldPathToRemove)
+	}
+
+	if s.editor != nil {
+		s.editor.Hide()
+	}
+
 	s.mu.Lock()
 	s.phase = phaseIdle
 	autoCopy := s.settings.AutoCopy
 	s.mu.Unlock()
 
 	fileName := filepath.Base(path)
-	s.tray.SetLabel("")
+	if s.tray != nil {
+		s.tray.SetLabel("")
+	}
 	s.broadcast()
-	s.app.Event.Emit("library", fileName)
+	if s.app != nil && s.app.Event != nil {
+		s.app.Event.Emit("library", fileName)
+	}
 	playSound("Pop")
 
 	if autoCopy {
@@ -677,14 +917,15 @@ func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string)
 		showNotification("Gifkite", fmt.Sprintf("Recording saved to %s", fileName))
 	}
 
-	s.tray.ShowWindow() // like Gifox: pop the new recording up
+	if s.tray != nil {
+		s.tray.ShowWindow() // like Gifox: pop the new recording up
+	}
 }
 
 func showNotification(title, message string) {
 	switch runtime.GOOS {
 	case "darwin":
-		script := fmt.Sprintf(`display notification %q with title %q sound name "Pop"`, message, title)
-		_ = exec.Command("osascript", "-e", script).Start()
+		showDarwinNotification(title, message)
 	case "windows":
 		psCmd := fmt.Sprintf(`[reflection.assembly]::loadwithpartialname('System.Windows.Forms') | Out-Null; $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.BalloonTipTitle = %q; $n.BalloonTipText = %q; $n.Visible = $True; $n.ShowBalloonTip(3000)`, title, message)
 		_ = exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", psCmd).Start()
@@ -701,6 +942,9 @@ func (s *GifService) toCapture(r NormRect) image.Rectangle {
 	s.mu.Unlock()
 
 	b := screenshot.GetDisplayBounds(disp)
+	if r.PxW > 0 && r.PxH > 0 {
+		return image.Rect(b.Min.X+r.PxX, b.Min.Y+r.PxY, b.Min.X+r.PxX+r.PxW, b.Min.Y+r.PxY+r.PxH).Intersect(b)
+	}
 	x0 := b.Min.X + int(r.X*float64(b.Dx()))
 	y0 := b.Min.Y + int(r.Y*float64(b.Dy()))
 	x1 := b.Min.X + int((r.X+r.W)*float64(b.Dx()))
@@ -716,6 +960,14 @@ func (s *GifService) toDIP(r NormRect) application.Rect {
 		scr = s.app.Screen.GetPrimary()
 	}
 	b := scr.Bounds
+	if r.PxW > 0 && r.PxH > 0 {
+		return application.Rect{
+			X:      b.X + r.PxX,
+			Y:      b.Y + r.PxY,
+			Width:  r.PxW,
+			Height: r.PxH,
+		}
+	}
 	return application.Rect{
 		X:      b.X + int(r.X*float64(b.Width)),
 		Y:      b.Y + int(r.Y*float64(b.Height)),

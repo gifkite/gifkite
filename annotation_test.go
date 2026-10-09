@@ -80,7 +80,7 @@ func TestMultiFormatExport(t *testing.T) {
 
 	// 1. GIF export
 	gifPath := filepath.Join(tmpDir, "test.gif")
-	if err := EncodeExport(gifPath, "gif", frames, end, 10, "none", nil); err != nil {
+	if err := EncodeExport(gifPath, "gif", frames, end, 10, "none", 256, nil); err != nil {
 		t.Fatalf("EncodeExport GIF failed: %v", err)
 	}
 	fi, err := os.Stat(gifPath)
@@ -90,7 +90,7 @@ func TestMultiFormatExport(t *testing.T) {
 
 	// 2. WebP export
 	webpPath := filepath.Join(tmpDir, "test.webp")
-	if err := EncodeExport(webpPath, "webp", frames, end, 10, "none", nil); err != nil {
+	if err := EncodeExport(webpPath, "webp", frames, end, 10, "none", 256, nil); err != nil {
 		t.Logf("WebP export returned: %v (tools may not be present in test env, fallback checked)", err)
 	} else {
 		fi, err := os.Stat(webpPath)
@@ -101,7 +101,7 @@ func TestMultiFormatExport(t *testing.T) {
 
 	// 3. MP4 export
 	mp4Path := filepath.Join(tmpDir, "test.mp4")
-	if err := EncodeExport(mp4Path, "mp4", frames, end, 10, "none", nil); err != nil {
+	if err := EncodeExport(mp4Path, "mp4", frames, end, 10, "none", 256, nil); err != nil {
 		t.Logf("MP4 export returned: %v (ffmpeg may not be present in test env)", err)
 	} else {
 		fi, err := os.Stat(mp4Path)

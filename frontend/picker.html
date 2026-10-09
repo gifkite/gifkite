@@ -159,22 +159,23 @@
   }
 
   /* Gifox-style Floating Dialog Box */
+  /* Gifox-style Floating Dialog Box */
   #dialog {
     position: fixed;
     display: none;
     z-index: 50;
-    height: 44px;
-    padding: 0 8px 0 12px;
+    height: 48px;
+    padding: 0 12px 0 16px;
     background: rgba(20, 22, 27, 0.94);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
     align-items: center;
-    gap: 9px;
+    gap: 12px;
     color: #fff;
-    font-size: 12.5px;
+    font-size: 13px;
     pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
@@ -191,8 +192,8 @@
   .dlg-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    max-width: 220px;
+    gap: 8px;
+    max-width: 230px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -207,7 +208,7 @@
   }
   .dlg-title {
     opacity: 0.65;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 400;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -215,27 +216,27 @@
 
   .dlg-sep {
     width: 1px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.13);
+    height: 20px;
+    background: rgba(255, 255, 255, 0.14);
     flex-shrink: 0;
   }
 
   .dlg-size {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
+    gap: 5px;
+    font-size: 12.5px;
   }
   .size-inp {
-    width: 52px;
-    height: 26px;
-    padding: 0 4px;
-    border-radius: 6px;
+    width: 56px;
+    height: 28px;
+    padding: 0 6px;
+    border-radius: 7px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: #ffffff;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 12.5px;
     text-align: center;
     outline: none;
     font-family: inherit;
@@ -259,13 +260,13 @@
     align-items: center;
   }
   .ratio-select {
-    height: 26px;
-    padding: 0 6px;
-    border-radius: 6px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 7px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: #ffffff;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     outline: none;
     cursor: pointer;
@@ -283,18 +284,18 @@
   .dlg-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .btn-dlg-cancel {
-    height: 30px;
-    padding: 0 10px;
-    border-radius: 7px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
     color: rgba(255, 255, 255, 0.75);
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12px;
+    gap: 6px;
+    font-size: 12.5px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.12s;
@@ -306,17 +307,17 @@
   }
 
   .btn-dlg-record {
-    height: 30px;
-    padding: 0 14px;
-    border-radius: 8px;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 9px;
     background: linear-gradient(135deg, var(--coral-primary) 0%, var(--coral-light) 100%);
     color: #ffffff;
     font-family: var(--font-heading);
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     cursor: pointer;
     box-shadow: 0 3px 12px var(--coral-glow);
     transition: all 0.12s;
@@ -670,7 +671,17 @@ function finish(r) {
   const winId = selectedWinId;
   reset();
   if (!r || r.w < 8 || r.h < 8) return;
-  call("PickerDone", { x: r.x / vw, y: r.y / vh, w: r.w / vw, h: r.h / vh, windowId: winId });
+  call("PickerDone", {
+    x: r.x / vw,
+    y: r.y / vh,
+    w: r.w / vw,
+    h: r.h / vh,
+    pxX: Math.round(r.x),
+    pxY: Math.round(r.y),
+    pxW: Math.round(r.w),
+    pxH: Math.round(r.h),
+    windowId: winId
+  });
 }
 
 function renderRect() {

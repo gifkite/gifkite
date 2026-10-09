@@ -7,31 +7,33 @@
   html, body { background: transparent; overflow: hidden; }
   .pill {
     --wails-draggable: drag; /* drag the pill out of the way if it covers something */
-    position: fixed; inset: 4px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px;
-    border-radius: 22px; background: rgba(24, 25, 29, 0.92); color: #fff;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35); backdrop-filter: blur(12px);
+    position: fixed; inset: 4px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px;
+    border-radius: 24px; background: rgba(22, 24, 29, 0.94); color: #fff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(255, 255, 255, 0.08) inset;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
-  .grip { display: flex; flex-direction: column; gap: 2.5px; opacity: 0.4; padding-right: 2px; cursor: grab; }
+  .grip { display: flex; flex-direction: column; gap: 3px; opacity: 0.4; padding-right: 2px; cursor: grab; }
   .grip span { width: 12px; height: 2px; background: #ffffff; border-radius: 1px; }
   .pill:hover .grip { opacity: 0.75; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; transition: background 0.2s; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; transition: background 0.2s; }
   .dot.paused { background: #f59e0b; animation: none; }
   @keyframes pulse { 50% { opacity: 0.3; } }
-  .t { flex: 1; font-size: 14.5px; font-weight: 600; font-family: system-ui, -apple-system, sans-serif; min-width: 36px; }
+  .t { flex: 1; font-size: 14.5px; font-weight: 600; font-family: system-ui, -apple-system, sans-serif; min-width: 38px; }
   button { --wails-draggable: no-drag; }
   .pause {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%;
+    width: 30px; height: 30px; border-radius: 50%;
     color: rgba(255, 255, 255, 0.85); cursor: pointer;
-    background: rgba(255, 255, 255, 0.1); transition: all 0.12s;
+    background: rgba(255, 255, 255, 0.09); transition: all 0.12s;
   }
-  .pause:hover { color: #fff; background: rgba(255, 255, 255, 0.2); }
+  .pause:hover { color: #fff; background: rgba(255, 255, 255, 0.18); transform: scale(1.04); }
   .pause svg { fill: currentColor; }
-  .stop { display: inline-flex; align-items: center; gap: 6px; background: var(--rec); color: #fff; font-weight: 600; padding: 6px 11px; border-radius: 16px; cursor: pointer; transition: opacity 0.12s; font-size: 13px; }
-  .stop:hover { opacity: 0.9; }
+  .stop { display: inline-flex; align-items: center; gap: 7px; background: var(--rec); color: #fff; font-weight: 600; padding: 7px 13px; border-radius: 18px; cursor: pointer; transition: all 0.12s; font-size: 13px; box-shadow: 0 2px 8px rgba(255, 59, 92, 0.35); }
+  .stop:hover { opacity: 0.95; transform: scale(1.02); filter: brightness(1.08); }
   .stop i { width: 8px; height: 8px; background: #fff; border-radius: 1.5px; }
-  .x { width: 26px; height: 26px; border-radius: 50%; color: rgba(255, 255, 255, 0.6); font-size: 15px; cursor: pointer; }
-  .x:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+  .x { width: 28px; height: 28px; border-radius: 50%; color: rgba(255, 255, 255, 0.6); font-size: 14px; cursor: pointer; transition: all 0.12s; display: inline-flex; align-items: center; justify-content: center; }
+  .x:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
 </style>
 </head>
 <body>

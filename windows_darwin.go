@@ -114,12 +114,35 @@ static int isLeftButtonDown() {
 static int isRightButtonDown() {
     return CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonRight);
 }
+
+static void getScreenDetails(int* cgW, int* cgH, int* pxW, int* pxH) {
+    CGDirectDisplayID mainId = CGMainDisplayID();
+    CGRect r = CGDisplayBounds(mainId);
+    *cgW = (int)r.size.width;
+    *cgH = (int)r.size.height;
+    *pxW = (int)CGDisplayPixelsWide(mainId);
+    *pxH = (int)CGDisplayPixelsHigh(mainId);
+}
+
+static void warpMouse(int x, int y) {
+    CGWarpMouseCursorPosition(CGPointMake(x, y));
+}
 */
 import "C"
 
 type CursorPoint struct {
 	X int
 	Y int
+}
+
+func warpMousePoint(x, y int) {
+	C.warpMouse(C.int(x), C.int(y))
+}
+
+func getScreenMetrics() (int, int, int, int) {
+	var cgW, cgH, pxW, pxH C.int
+	C.getScreenDetails(&cgW, &cgH, &pxW, &pxH)
+	return int(cgW), int(cgH), int(pxW), int(pxH)
 }
 
 func getCursorPoint() CursorPoint {

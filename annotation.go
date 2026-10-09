@@ -13,15 +13,17 @@ import (
 )
 
 type Annotation struct {
-	Type  string  `json:"type"`  // "arrow", "text", "blur"
-	X     float64 `json:"x"`     // 0..1 normalized coords
+	Type  string  `json:"type"`            // "arrow", "text", "blur"
+	X     float64 `json:"x"`               // 0..1 normalized coords
 	Y     float64 `json:"y"`
-	X2    float64 `json:"x2"`    // for arrow
+	X1    float64 `json:"x1,omitempty"`   // alias for x
+	Y1    float64 `json:"y1,omitempty"`   // alias for y
+	X2    float64 `json:"x2"`              // for arrow
 	Y2    float64 `json:"y2"`
-	W     float64 `json:"w"`     // for blur
+	W     float64 `json:"w"`               // for blur
 	H     float64 `json:"h"`
-	Text  string  `json:"text"`  // for text
-	Color string  `json:"color"` // hex e.g. "#ff3b30"
+	Text  string  `json:"text"`            // for text
+	Color string  `json:"color"`           // hex e.g. "#ff3b30"
 }
 
 func parseHex(hex string, def color.RGBA) color.RGBA {
@@ -53,8 +55,16 @@ func ApplyAnnotations(img *image.RGBA, annotations []Annotation) {
 			h := int(a.H * bh)
 			pixelateRect(img, x, y, w, h, 10)
 		case "arrow":
-			x1 := int(a.X * bw)
-			y1 := int(a.Y * bh)
+			ax1 := a.X
+			if ax1 == 0 && a.X1 != 0 {
+				ax1 = a.X1
+			}
+			ay1 := a.Y
+			if ay1 == 0 && a.Y1 != 0 {
+				ay1 = a.Y1
+			}
+			x1 := int(ax1 * bw)
+			y1 := int(ay1 * bh)
 			x2 := int(a.X2 * bw)
 			y2 := int(a.Y2 * bh)
 			col := parseHex(a.Color, color.RGBA{R: 255, G: 59, B: 48, A: 255}) // Apple red/coral

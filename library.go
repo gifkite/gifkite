@@ -98,7 +98,7 @@ func (s *GifService) CopyFile(name string) error {
 	}
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("osascript", "-e", `set the clipboard to (POSIX file "`+strings.ReplaceAll(p, `"`, `\"`)+`")`).Run()
+		return copyDarwinFile(p)
 	case "windows":
 		return exec.Command("powershell", "-NoProfile", "-Command", "Set-Clipboard -Path '"+strings.ReplaceAll(p, "'", "''")+"'").Run()
 	default:
@@ -271,12 +271,7 @@ func (c *thumbCache) get(path string) ([]byte, error) {
 	if ok && e.mod.Equal(info.ModTime()) {
 		return e.png, nil
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	first, err := gif.Decode(f)
+	first, err := ExtractThumbnailImage(path)
 	if err != nil {
 		return nil, err
 	}

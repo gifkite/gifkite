@@ -38,12 +38,16 @@ func runApp() {
 	})
 	svc.app = app
 
+	if prim := app.Screen.GetPrimary(); prim != nil {
+		log.Printf("[Wails Screen] Primary Bounds: %+v, WorkArea: %+v", prim.Bounds, prim.WorkArea)
+	}
+
 	// The popover that drops down from the menu bar icon.
 	svc.popover = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:            "popover",
 		URL:             "/index.html",
-		Width:           410,
-		Height:          600,
+		Width:           440,
+		Height:          640,
 		Frameless:       true,
 		AlwaysOnTop:     true,
 		Hidden:          true,
@@ -105,9 +109,31 @@ func runApp() {
 		},
 	})
 
+	// Dedicated Full Trim & Review Editor Studio window (like Gifox)
+	svc.editor = app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:      "editor",
+		Title:     "Gifkite Editor",
+		URL:       "/editor.html",
+		Width:     1180,
+		Height:    740,
+		MinWidth:  840,
+		MinHeight: 560,
+		Hidden:    true,
+		Mac: application.MacWindow{
+			Backdrop: application.MacBackdropTranslucent,
+			TitleBar: application.MacTitleBarHiddenInset,
+		},
+	})
+	svc.editor.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		svc.editor.Hide()
+		svc.DiscardReview()
+		e.Cancel()
+	})
+
 	setWindowInvisibleToCapture(svc.popover.NativeWindow())
 	setWindowInvisibleToCapture(svc.picker.NativeWindow())
 	setWindowInvisibleToCapture(svc.controls.NativeWindow())
+	setWindowInvisibleToCapture(svc.editor.NativeWindow())
 	setWindowTransparent(svc.picker.NativeWindow())
 
 	tray := app.SystemTray.New()

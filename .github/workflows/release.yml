@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: go test -v .
 
-      - name: Build Gifkite.app bundle
+      - name: Build & Package Gifkite.app bundle
         run: ./build-app.sh "${{ env.RELEASE_VERSION }}"
 
       - name: Package DMG & ZIP
@@ -43,6 +43,21 @@ jobs:
           mkdir -p dmg_root
           cp -R Gifkite.app dmg_root/
           ln -s /Applications dmg_root/Applications
+
+          # Add first-run Gatekeeper helper script in the DMG root
+          printf '%s\n' \
+            '#!/usr/bin/env bash' \
+            'echo "Authorizing Gifkite for first run..."' \
+            'if [ -d "/Applications/Gifkite.app" ]; then' \
+            '    xattr -cr /Applications/Gifkite.app 2>/dev/null || true' \
+            '    open /Applications/Gifkite.app' \
+            '    echo "Gifkite opened successfully!"' \
+            'else' \
+            '    echo "Please drag Gifkite.app to the Applications folder first, then double-click this helper."' \
+            '    read -p "Press Enter to exit..."' \
+            'fi' > "dmg_root/Open Gifkite (First Run).command"
+          chmod +x "dmg_root/Open Gifkite (First Run).command"
+
           hdiutil create -volname "Gifkite" -srcfolder dmg_root -ov -format UDZO Gifkite-macOS.dmg
           rm -rf dmg_root
 
@@ -152,3 +167,17 @@ jobs:
           name: Release ${{ env.RELEASE_VERSION }}
           files: release-assets/*
           generate_release_notes: true
+          body: |
+            ### 🚀 Installation (macOS)
+
+            **Option 1: One-Line Terminal Install (Recommended)**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash
+            ```
+
+            **Option 2: Direct DMG Download**
+            1. Download `Gifkite-macOS.dmg` and drag `Gifkite.app` into `/Applications`.
+            2. If macOS displays *"Apple could not verify Gifkite is free of malware"*:
+               - Run in Terminal: `xattr -cr /Applications/Gifkite.app`
+               - Or right-click (Control-click) `Gifkite.app` in `/Applications`, choose **Open**, and confirm **Open**.
+               - Or double-click the included `Open Gifkite (First Run).command` inside the DMG.

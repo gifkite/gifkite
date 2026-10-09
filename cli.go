@@ -23,8 +23,10 @@ func usage() {
 func cmdDisplays() {
 	for i := 0; i < screenshot.NumActiveDisplays(); i++ {
 		b := screenshot.GetDisplayBounds(i)
-		fmt.Printf("%d: %d,%d,%d,%d\n", i, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
+		fmt.Printf("Display %d bounds: Min=(%d,%d) Size=(%d x %d)\n", i, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
 	}
+	pt := getCursorPoint()
+	fmt.Printf("Current cursor: X=%d Y=%d\n", pt.X, pt.Y)
 }
 
 func cmdRecord(args []string) {
@@ -92,7 +94,7 @@ func saveRecording(rec *Recorder, path string, fps int, dither string) error {
 	}
 	defer f.Close()
 	start := time.Now()
-	stats, err := EncodeGIF(f, frames, end, fps, dither, func(i, n int) {
+	stats, err := EncodeGIF(f, frames, end, fps, dither, 256, func(i, n int) {
 		fmt.Fprintf(os.Stderr, "\rencoding %d/%d", i, n)
 	})
 	if err != nil {

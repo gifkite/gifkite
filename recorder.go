@@ -11,8 +11,9 @@ import (
 
 // Frame is one captured image and the moment it was grabbed.
 type Frame struct {
-	Img *image.RGBA
-	At  time.Time
+	Img        *image.RGBA
+	At         time.Time
+	ScreenRect image.Rectangle
 }
 
 // Recorder grabs a screen rectangle on a ticker until stopped.
@@ -131,11 +132,11 @@ func (r *Recorder) loopSCK() bool {
 	}
 
 	frameCh := make(chan Frame, 30)
-	sckShowCursor := r.opts.ShowCursor && !r.opts.CursorHighlight && !r.opts.ClickRipples
+	sckShowCursor := r.opts.ShowCursor
 
-	stream, err := startSCK(r.rect, r.opts.WindowID, r.fps, sckShowCursor, func(img *image.RGBA, at time.Time) {
+	stream, err := startSCK(r.rect, r.opts.WindowID, r.fps, sckShowCursor, func(img *image.RGBA, at time.Time, screenRect image.Rectangle) {
 		select {
-		case frameCh <- Frame{Img: img, At: at}:
+		case frameCh <- Frame{Img: img, At: at, ScreenRect: screenRect}:
 		default:
 		}
 	})
@@ -170,11 +171,11 @@ func (r *Recorder) loopSCK() bool {
 				if r.clickTracker != nil {
 					clicks = r.clickTracker.ActiveClicks(now)
 				}
-				targetRect := r.rect
-				if r.opts.WindowID > 0 {
-					targetRect = image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy())
+				captureRect := frame.ScreenRect
+				if captureRect.Empty() {
+					captureRect = r.rect
 				}
-				RenderCursorEffects(img, targetRect, cursor, clicks, now, r.opts.ShowCursor && !sckShowCursor, r.opts.CursorHighlight, r.opts.ClickRipples)
+				RenderCursorEffects(img, captureRect, cursor, clicks, now, r.opts.ShowCursor && !sckShowCursor, r.opts.CursorHighlight, r.opts.ClickRipples)
 			}
 
 			img = r.resize(img)

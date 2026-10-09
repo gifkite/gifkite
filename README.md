@@ -23,6 +23,25 @@ A fast, lightweight Gifox-style screen-to-GIF recorder with menu bar / system tr
 
 🌐 **Website & Interactive Demo**: [https://gifkite.github.io/gifkite/](https://gifkite.github.io/gifkite/)
 
+## Installation
+
+### macOS
+
+**Fast Install (Terminal)**:
+```bash
+curl -fsSL https://raw.githubusercontent.com/gifkite/gifkite/main/install.sh | bash
+```
+*(Automatically downloads the latest release, installs to `/Applications`, and configures macOS Gatekeeper permissions).*
+
+**Manual Install**:
+1. Download `Gifkite-macOS.dmg` from [Releases](https://github.com/gifkite/gifkite/releases/latest).
+2. Open the DMG and drag `Gifkite.app` to `/Applications`.
+3. If macOS displays *"Apple could not verify Gifkite is free of malware"*:
+   - Run in Terminal: `xattr -cr /Applications/Gifkite.app`
+   - Or right-click (Control-click) `Gifkite.app` → click **Open** → confirm **Open**.
+
+---
+
 ## Quick Start & Build
 
 Needs Go 1.25+. You can build using [`go-task`](https://taskfile.dev) or standard Go commands:

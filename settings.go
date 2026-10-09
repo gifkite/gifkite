@@ -20,6 +20,8 @@ type Settings struct {
 	ClickRipples    bool    `json:"clickRipples"`
 	ShowControls    bool    `json:"showControls"`
 	Format          string  `json:"format"`
+	LaunchAtLogin   bool    `json:"launchAtLogin"`
+	MaxColors       int     `json:"maxColors"`
 }
 
 func defaultSettings() Settings {
@@ -30,13 +32,15 @@ func defaultSettings() Settings {
 		Countdown:       true,
 		OutputDir:       defaultOutputDir(),
 		Dither:          "none",
-		Trim:            true,
+		Trim:            false,
 		AutoCopy:        true,
 		ShowCursor:      true,
 		CursorHighlight: true,
 		ClickRipples:    true,
 		ShowControls:    true,
 		Format:          "gif",
+		LaunchAtLogin:   false,
+		MaxColors:       256,
 	}
 }
 
@@ -53,6 +57,7 @@ func loadSettings() Settings {
 	if b, err := os.ReadFile(settingsPath()); err == nil {
 		json.Unmarshal(b, &s)
 	}
+	s.LaunchAtLogin = isLaunchAtLogin()
 	return s.clamp()
 }
 
@@ -76,6 +81,9 @@ func (s Settings) clamp() Settings {
 	if s.Format != "gif" && s.Format != "webp" && s.Format != "mp4" {
 		s.Format = "gif"
 	}
+	if s.MaxColors != 256 && s.MaxColors != 128 && s.MaxColors != 64 && s.MaxColors != 32 {
+		s.MaxColors = 256
+	}
 	return s
 }
 
@@ -85,6 +93,9 @@ func (g *GifService) SaveSettings(s Settings) (Settings, error) {
 	g.mu.Lock()
 	g.settings = s
 	g.mu.Unlock()
+
+	_ = setLaunchAtLogin(s.LaunchAtLogin)
+
 	p := settingsPath()
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		return s, err

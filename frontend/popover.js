@@ -127,12 +127,6 @@ function render(s) {
     if (liveDot) liveDot.classList.add("paused");
   }
   if (s.phase === "encoding") setPct(0);
-  if (s.phase === "review") {
-    if (!reviewInfo) setupReview();
-  } else {
-    stopPlayback();
-    reviewInfo = null;
-  }
   renderSettings(s.settings);
 }
 
@@ -159,6 +153,26 @@ async function setupReview(info) {
   if (!info || info.numFrames <= 0) return;
   reviewInfo = info;
 
+  const badge = $("review-badge");
+  const fnBadge = $("review-filename");
+  const saveCopyBtn = $("review-save-copy-btn");
+  if (info.fileName) {
+    if (badge) badge.textContent = "EDIT RECORDING";
+    if (fnBadge) {
+      fnBadge.hidden = false;
+      fnBadge.textContent = info.fileName;
+      fnBadge.title = info.fileName;
+    }
+    if (saveCopyBtn) saveCopyBtn.hidden = false;
+    const fileExt = (info.fileName.split(".").pop() || "gif").toLowerCase();
+    setReviewFormat(fileExt);
+  } else {
+    if (badge) badge.textContent = "TRIM & REVIEW";
+    if (fnBadge) fnBadge.hidden = true;
+    if (saveCopyBtn) saveCopyBtn.hidden = true;
+    setReviewFormat(state?.settings?.format || "gif");
+  }
+
   const startSlider = $("trim-start");
   const endSlider = $("trim-end");
   if (startSlider && endSlider) {
@@ -174,7 +188,6 @@ async function setupReview(info) {
   currentPlayhead = 0;
   annotations = [];
   setActiveTool(null);
-  setReviewFormat(state?.settings?.format || "gif");
   stopPlayback();
   updateTimelineUI();
   showFrame(0);
@@ -318,10 +331,18 @@ function card(r, fresh) {
     <div class="pic" title="Click to copy, double-click to open">
       <img alt="" draggable="false">
       <span class="fmt-badge fmt-${extClass}">${ext}</span>
-      <div class="acts">
-        <button data-a="copy">Copy</button>
-        <button data-a="reveal" title="${isMac ? "Show in Finder" : "Show in folder"}">Show</button>
-        <button data-a="delete">Delete</button>
+      <div class="acts" id="acts-normal">
+        <button type="button" data-a="edit" title="Edit & Trim in Studio">Edit</button>
+        <button type="button" data-a="export" title="Export to other format">Export</button>
+        <button type="button" data-a="copy">Copy</button>
+        <button type="button" data-a="reveal" title="${isMac ? "Show in Finder" : "Show in folder"}">Show</button>
+        <button type="button" data-a="delete">Del</button>
+      </div>
+      <div class="acts acts-export" id="acts-export" style="display: none;">
+        <button type="button" data-fmt="mp4">MP4</button>
+        <button type="button" data-fmt="webp">WebP</button>
+        <button type="button" data-fmt="gif">GIF</button>
+        <button type="button" data-fmt="cancel" style="padding: 3px 5px;">✕</button>
       </div>
     </div>
     <div class="meta"><b></b><span class="num"></span></div>`;
@@ -370,21 +391,65 @@ function card(r, fresh) {
   });
   pic.addEventListener("dblclick", () => call("Open", r.name));
 
+  const actsNormal = el.querySelector("#acts-normal");
+  const actsExport = el.querySelector("#acts-export");
+
+  // Edit button
+  el.querySelector('[data-a="edit"]').onclick = async (e) => {
+    e.stopPropagation();
+    try {
+      toast("Opening in editor…");
+      await call("OpenInEditor", r.name);
+    } catch (err) {
+      toast(String(err.message || err));
+    }
+  };
+
+  // Export button
+  el.querySelector('[data-a="export"]').onclick = (e) => {
+    e.stopPropagation();
+    actsNormal.style.display = "none";
+    actsExport.style.display = "flex";
+  };
+
+  actsExport.querySelectorAll("button").forEach((btn) => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const targetFmt = btn.dataset.fmt;
+      actsExport.style.display = "none";
+      actsNormal.style.display = "flex";
+      if (targetFmt === "cancel") return;
+      try {
+        toast(`Exporting as ${targetFmt.toUpperCase()}…`);
+        await call("ExportRecording", r.name, targetFmt);
+        await loadLibrary();
+      } catch (err) {
+        toast(String(err.message || err));
+      }
+    };
+  });
+
   const del = el.querySelector('[data-a="delete"]');
-  el.querySelector('[data-a="copy"]').onclick = () => copy(r.name);
-  el.querySelector('[data-a="reveal"]').onclick = () => call("Reveal", r.name);
-  del.onclick = async () => {
+  el.querySelector('[data-a="copy"]').onclick = (e) => { e.stopPropagation(); copy(r.name); };
+  el.querySelector('[data-a="reveal"]').onclick = (e) => { e.stopPropagation(); call("Reveal", r.name); };
+  del.onclick = async (e) => {
+    e.stopPropagation();
     if (!del.classList.contains("danger")) {
       del.classList.add("danger");
-      del.textContent = "Delete?";
-      setTimeout(() => { del.classList.remove("danger"); del.textContent = "Delete"; }, 2500);
+      del.textContent = "Del?";
+      setTimeout(() => { del.classList.remove("danger"); del.textContent = "Del"; }, 2500);
       return;
     }
     await call("Delete", r.name);
     el.remove();
     $("empty").hidden = $("grid").children.length > 0;
   };
-  el.addEventListener("mouseleave", () => { del.classList.remove("danger"); del.textContent = "Delete"; });
+  el.addEventListener("mouseleave", () => {
+    del.classList.remove("danger");
+    del.textContent = "Del";
+    actsExport.style.display = "none";
+    actsNormal.style.display = "flex";
+  });
   if (fresh) {
     pic.animate([{ boxShadow: "0 0 0 3px var(--rec)" }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1400, easing: "ease-out" });
   }
@@ -415,6 +480,7 @@ function renderSettings(st) {
   if ($("cursorHighlight")) $("cursorHighlight").checked = st.cursorHighlight !== false;
   if ($("clickRipples")) $("clickRipples").checked = st.clickRipples !== false;
   if ($("showControls")) $("showControls").checked = st.showControls !== false;
+  if ($("launchAtLogin")) $("launchAtLogin").checked = st.launchAtLogin === true;
   $("folder").textContent = st.outputDir;
 }
 
@@ -442,6 +508,7 @@ if ($("showCursor")) $("showCursor").onchange = (e) => saveSettings({ showCursor
 if ($("cursorHighlight")) $("cursorHighlight").onchange = (e) => saveSettings({ cursorHighlight: e.target.checked });
 if ($("clickRipples")) $("clickRipples").onchange = (e) => saveSettings({ clickRipples: e.target.checked });
 if ($("showControls")) $("showControls").onchange = (e) => saveSettings({ showControls: e.target.checked });
+if ($("launchAtLogin")) $("launchAtLogin").onchange = (e) => saveSettings({ launchAtLogin: e.target.checked });
 $("choose").onclick = async () => {
   await call("ChooseFolder");
   render(await call("GetState"));
@@ -527,7 +594,13 @@ function setReviewFormat(fmt) {
     b.classList.toggle("on", b.dataset.fmt === reviewFormat);
   });
   const txt = $("review-save-text");
-  if (txt) txt.textContent = `Save ${reviewFormat.toUpperCase()}`;
+  if (txt) {
+    if (reviewInfo?.fileName) {
+      txt.textContent = `Save (${reviewFormat.toUpperCase()})`;
+    } else {
+      txt.textContent = `Save ${reviewFormat.toUpperCase()}`;
+    }
+  }
 }
 
 document.querySelectorAll("#format-toggle button").forEach((b) => {
@@ -765,6 +838,14 @@ if (reviewPlayBtn) {
   });
 }
 
+const reviewBackBtn = $("review-back-btn");
+if (reviewBackBtn) {
+  reviewBackBtn.addEventListener("click", async () => {
+    stopPlayback();
+    await call("DiscardReview");
+  });
+}
+
 const reviewSaveBtn = $("review-save-btn");
 if (reviewSaveBtn) {
   reviewSaveBtn.addEventListener("click", async () => {
@@ -772,7 +853,21 @@ if (reviewSaveBtn) {
     const startVal = Number($("trim-start")?.value || 0);
     const endVal = Number($("trim-end")?.value || 0);
     try {
-      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations);
+      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, false, null, 0);
+    } catch (err) {
+      toast(String(err.message || err));
+    }
+  });
+}
+
+const reviewSaveCopyBtn = $("review-save-copy-btn");
+if (reviewSaveCopyBtn) {
+  reviewSaveCopyBtn.addEventListener("click", async () => {
+    stopPlayback();
+    const startVal = Number($("trim-start")?.value || 0);
+    const endVal = Number($("trim-end")?.value || 0);
+    try {
+      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, true, null, 0);
     } catch (err) {
       toast(String(err.message || err));
     }
@@ -834,8 +929,10 @@ document.querySelectorAll("[data-act]").forEach((b) => {
   b.addEventListener("click", () => call(b.dataset.act));
 });
 
+$("btn-focus-editor")?.addEventListener("click", () => call("FocusEditor"));
+$("btn-discard-editor-popover")?.addEventListener("click", () => call("DiscardReview"));
+
 Events.On("state", (e) => render(e.data));
-Events.On("review:open", (e) => setupReview(e.data));
 Events.On("tick", (e) => {
   if (state?.phase === "recording" || state?.phase === "paused") {
     $("timer").textContent = clock(e.data);

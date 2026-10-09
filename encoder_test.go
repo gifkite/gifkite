@@ -38,7 +38,7 @@ func synthFrames(n int) ([]Frame, time.Time) {
 func TestEncodeRoundTrip(t *testing.T) {
 	frames, end := synthFrames(60)
 	var buf bytes.Buffer
-	st, err := EncodeGIF(&buf, frames, end, 15, "none", nil)
+	st, err := EncodeGIF(&buf, frames, end, 15, "none", 256, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestEncodeDithering(t *testing.T) {
 	frames, end := synthFrames(20)
 	for _, mode := range []string{"bayer", "floyd", "none"} {
 		var buf bytes.Buffer
-		st, err := EncodeGIF(&buf, frames, end, 15, mode, nil)
+		st, err := EncodeGIF(&buf, frames, end, 15, mode, 256, nil)
 		if err != nil {
 			t.Fatalf("mode %s failed: %v", mode, err)
 		}
@@ -97,3 +97,4 @@ func TestEncodeDithering(t *testing.T) {
 		t.Logf("mode=%s captured=%d written=%d size=%dB", mode, st.Captured, st.Written, buf.Len())
 	}
 }
+

@@ -7,6 +7,9 @@ cd "$DIR"
 VERSION="${1:-${VERSION:-1.0.0}}"
 BUNDLE_VERSION="${VERSION#v}"
 
+# Kill any currently running Gifkite process before building
+pkill -f "Gifkite.app/Contents/MacOS/gifkite" || true
+
 echo "Building gifkite binary (version: $VERSION)..."
 go build -tags private_mac_apis -ldflags="-X main.Version=$VERSION -s -w" -o gifkite .
 
@@ -47,12 +50,20 @@ cat << EOF > "$APP/Contents/Info.plist"
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Gifkite requires screen recording permission to capture and record GIFs of your screen.</string>
 </dict>
 </plist>
 EOF
 
 if command -v codesign >/dev/null 2>&1; then
-    codesign --force --deep --sign - "$APP"
+    SIGN_IDENTITY="${DEVELOPER_ID_APPLICATION:-${APPLE_SIGNING_IDENTITY:--}}"
+    ENTITLEMENTS_FLAG=""
+    if [ -f "entitlements.plist" ]; then
+        ENTITLEMENTS_FLAG="--entitlements entitlements.plist"
+    fi
+    echo "Signing $APP with identity '$SIGN_IDENTITY' and Hardened Runtime..."
+    codesign --force --deep --options runtime $ENTITLEMENTS_FLAG --sign "$SIGN_IDENTITY" "$APP"
 fi
 
 echo "Done! You can run: open Gifkite.app"
