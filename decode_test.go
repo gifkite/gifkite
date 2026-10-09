@@ -127,15 +127,19 @@ func TestExportAndPostSaveTrim(t *testing.T) {
 	}
 
 	// 4. Test Direct Export to WebP
-	outWebp, err := s.ExportRecording("gifkite-2026-10-09-100000.gif", "webp")
-	if err != nil {
-		t.Fatalf("ExportRecording to webp failed: %v", err)
-	}
-	if filepath.Ext(outWebp) != ".webp" {
-		t.Fatalf("expected .webp extension, got %s", outWebp)
-	}
-	if _, err := os.Stat(filepath.Join(tmpDir, outWebp)); err != nil {
-		t.Fatalf("exported webp file not found: %v", err)
+	if findBinary("gif2webp") != "" || findBinary("ffmpeg") != "" {
+		outWebp, err := s.ExportRecording("gifkite-2026-10-09-100000.gif", "webp")
+		if err != nil {
+			t.Fatalf("ExportRecording to webp failed: %v", err)
+		}
+		if filepath.Ext(outWebp) != ".webp" {
+			t.Fatalf("expected .webp extension, got %s", outWebp)
+		}
+		if _, err := os.Stat(filepath.Join(tmpDir, outWebp)); err != nil {
+			t.Fatalf("exported webp file not found: %v", err)
+		}
+	} else {
+		t.Logf("Skipping webp export test (neither gif2webp nor ffmpeg is installed)")
 	}
 }
 

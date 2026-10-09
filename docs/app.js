@@ -18,7 +18,37 @@ document.addEventListener('DOMContentLoaded', () => {
   safeRun('annotations', initAnnotationsDemo);
   safeRun('trimTimeline', initTrimTimeline);
   safeRun('tabs', initTabs);
+  safeRun('latestRelease', fetchLatestReleaseTag);
 });
+
+// 0. Dynamic Latest Release Tag Fetcher
+async function fetchLatestReleaseTag() {
+  try {
+    const res = await fetch('https://api.github.com/repos/gifkite/gifkite/releases/latest');
+    if (!res.ok) return;
+    const data = await res.json();
+    const tag = data.tag_name;
+    if (!tag) return;
+
+    document.querySelectorAll('.nav-version-badge').forEach(el => {
+      el.textContent = tag;
+    });
+    document.querySelectorAll('.hero-release-tag').forEach(el => {
+      el.textContent = `${tag} LIVE`;
+    });
+    const heroBtnSpan = document.querySelector('#hero-download-btn span');
+    if (heroBtnSpan) {
+      heroBtnSpan.textContent = `Download ${tag}`;
+    }
+    document.querySelectorAll('.badge-pill').forEach(el => {
+      if (el.textContent.includes('Official Release')) {
+        el.textContent = `Official Release ${tag}`;
+      }
+    });
+  } catch (e) {
+    // Fail silently, hardcoded defaults remain intact
+  }
+}
 
 // 1. Copy Buttons
 function initCopyButtons() {

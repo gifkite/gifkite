@@ -6,6 +6,7 @@ import (
 	"image"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ import (
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   gifkite                   start the menu bar app
-  gifkite record [-o out.gif] [-fps 15] [-scale 1] [-display 0 | -region x,y,w,h] [-duration 0] [-max 60s]
+  gifkite record [-o out.gif] [-format gif|webp|mp4] [-fps 15] [-scale 1] [-display 0 | -region x,y,w,h] [-duration 0] [-max 60s]
   gifkite displays`)
 }
 
@@ -31,7 +32,8 @@ func cmdDisplays() {
 
 func cmdRecord(args []string) {
 	fs := flag.NewFlagSet("record", flag.ExitOnError)
-	out := fs.String("o", "", "output file (default gifkite-<timestamp>.gif)")
+	out := fs.String("o", "", "output file (default gifkite-<timestamp>.<format>)")
+	format := fs.String("format", "", "export format: gif, webp, or mp4 (default inferred from -o extension or gif)")
 	fps := fs.Int("fps", 15, "frames per second")
 	scale := fs.Float64("scale", 1, "downscale factor, e.g. 0.5 halves width and height")
 	display := fs.Int("display", 0, "display index (see `gifkite displays`)")
@@ -53,7 +55,11 @@ func cmdRecord(args []string) {
 		fatal(err)
 	}
 	if *out == "" {
-		*out = defaultName()
+		ext := ".gif"
+		if *format != "" {
+			ext = "." + strings.TrimPrefix(strings.ToLower(*format), ".")
+		}
+		*out = defaultNameWithExt(ext)
 	}
 
 	rec := NewRecorder(rect, *fps, *scale, *maxDur, RecorderOptions{
@@ -77,32 +83,44 @@ func cmdRecord(args []string) {
 	}
 	signal.Stop(sig)
 
-	if err := saveRecording(rec, *out, *fps, *dither); err != nil {
+	if err := saveRecording(rec, *out, *format, *fps, *dither); err != nil {
 		fatal(err)
 	}
 }
 
-// saveRecording stops the recorder and writes the GIF.
-func saveRecording(rec *Recorder, path string, fps int, dither string) error {
+// saveRecording stops the recorder and writes the recording using EncodeExport.
+func saveRecording(rec *Recorder, path string, format string, fps int, dither string) error {
 	frames, end, err := rec.Stop()
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
+	if format == "" {
+		ext := strings.ToLower(filepath.Ext(path))
+		switch ext {
+		case ".webp":
+			format = "webp"
+		case ".mp4":
+			format = "mp4"
+		default:
+			format = "gif"
+		}
+	} else {
+		format = strings.ToLower(strings.TrimPrefix(format, "."))
 	}
-	defer f.Close()
 	start := time.Now()
-	stats, err := EncodeGIF(f, frames, end, fps, dither, 256, func(i, n int) {
+	err = EncodeExport(path, format, frames, end, fps, dither, 256, func(i, n int) {
 		fmt.Fprintf(os.Stderr, "\rencoding %d/%d", i, n)
 	})
 	if err != nil {
 		return err
 	}
-	info, _ := f.Stat()
-	fmt.Fprintf(os.Stderr, "\rwrote %s: %d captured, %d written, %.1f KB, %.1fs to encode\n",
-		path, stats.Captured, stats.Written, float64(info.Size())/1024, time.Since(start).Seconds())
+	info, _ := os.Stat(path)
+	var sizeKB float64
+	if info != nil {
+		sizeKB = float64(info.Size()) / 1024
+	}
+	fmt.Fprintf(os.Stderr, "\rwrote %s (%s): %d captured, %.1f KB, %.1fs to encode\n",
+		path, strings.ToUpper(format), len(frames), sizeKB, time.Since(start).Seconds())
 	return nil
 }
 
