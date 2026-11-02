@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,6 +69,8 @@ type ReviewInfo struct {
 	Duration  float64 `json:"duration"` // total seconds
 	FPS       int     `json:"fps"`
 	FileName  string  `json:"fileName,omitempty"`
+	Format    string  `json:"format,omitempty"`
+	MaxColors int     `json:"maxColors,omitempty"`
 }
 
 type CropRect struct {
@@ -564,17 +567,40 @@ func (s *GifService) finish(rec *Recorder, save bool) {
 func (s *GifService) reviewInfoLocked() ReviewInfo {
 	n := len(s.pendingFrames)
 	if n == 0 {
-		return ReviewInfo{NumFrames: 0, Duration: 0, FPS: s.settings.FPS, FileName: s.activeEditFile}
+		return ReviewInfo{
+			NumFrames: 0,
+			Duration:  0,
+			FPS:       s.settings.FPS,
+			FileName:  s.activeEditFile,
+			Format:    s.settings.Format,
+			MaxColors: s.settings.MaxColors,
+		}
 	}
 	dur := s.pendingEnd.Sub(s.pendingFrames[0].At).Seconds()
 	if dur <= 0 {
 		dur = float64(n) / float64(max(s.settings.FPS, 1))
 	}
+	fps := s.settings.FPS
+	format := s.settings.Format
+	if s.activeEditFile != "" {
+		ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(s.activeEditFile)), ".")
+		if ext != "" {
+			format = ext
+		}
+		if dur > 0 && n > 0 {
+			calcFPS := int(math.Round(float64(n) / dur))
+			if calcFPS >= 1 {
+				fps = calcFPS
+			}
+		}
+	}
 	return ReviewInfo{
 		NumFrames: n,
 		Duration:  dur,
-		FPS:       s.settings.FPS,
+		FPS:       fps,
 		FileName:  s.activeEditFile,
+		Format:    format,
+		MaxColors: s.settings.MaxColors,
 	}
 }
 
@@ -674,6 +700,16 @@ func (s *GifService) ExportRecording(name string, targetFormat string) (string, 
 	fps, dir, dither, maxColors := s.settings.FPS, s.settings.OutputDir, s.settings.Dither, s.settings.MaxColors
 	s.mu.Unlock()
 
+	if len(frames) > 1 {
+		dur := end.Sub(frames[0].At).Seconds()
+		if dur > 0 {
+			calcFPS := int(math.Round(float64(len(frames)) / dur))
+			if calcFPS >= 1 {
+				fps = calcFPS
+			}
+		}
+	}
+
 	outName := defaultNameWithExt("." + targetFormat)
 	outPath := filepath.Join(dir, outName)
 
@@ -691,11 +727,14 @@ func (s *GifService) ExportRecording(name string, targetFormat string) (string, 
 }
 
 // ConfirmReview trims the pending frames to [startIdx, endIdx] inclusive, applies annotations, optional canvas crop, and encodes the recording.
-func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotations []Annotation, saveAsCopy bool, crop *CropRect, maxColors int) error {
+func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotations []Annotation, saveAsCopy bool, crop *CropRect, maxColors int, speed float64) error {
 	s.mu.Lock()
 	if s.phase != phaseReview || len(s.pendingFrames) == 0 {
 		s.mu.Unlock()
 		return errors.New("not in review mode")
+	}
+	if speed <= 0 {
+		speed = 1.0
 	}
 	if startIdx < 0 {
 		startIdx = 0
@@ -707,6 +746,7 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 		startIdx, endIdx = endIdx, startIdx
 	}
 
+	origStart := s.pendingFrames[startIdx].At
 	trimmed := make([]Frame, endIdx-startIdx+1)
 	for i, orig := range s.pendingFrames[startIdx : endIdx+1] {
 		var frameImg *image.RGBA
@@ -723,11 +763,11 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 			b := frameImg.Bounds()
 			imgW, imgH := b.Dx(), b.Dy()
 			var x0, y0, w, h int
-			if crop.W <= 1.0 && crop.H <= 1.0 && crop.X <= 1.0 && crop.Y <= 1.0 {
-				x0 = int(crop.X * float64(imgW))
-				y0 = int(crop.Y * float64(imgH))
-				w = int(crop.W * float64(imgW))
-				h = int(crop.H * float64(imgH))
+			if crop.W <= 1.001 && crop.H <= 1.001 && crop.X <= 1.001 && crop.Y <= 1.001 {
+				x0 = int(math.Round(crop.X * float64(imgW)))
+				y0 = int(math.Round(crop.Y * float64(imgH)))
+				w = int(math.Round(crop.W * float64(imgW)))
+				h = int(math.Round(crop.H * float64(imgH)))
 			} else {
 				x0 = int(crop.X)
 				y0 = int(crop.Y)
@@ -740,6 +780,12 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 			}
 			if y0 < 0 {
 				y0 = 0
+			}
+			if x0 >= imgW {
+				x0 = imgW - 1
+			}
+			if y0 >= imgH {
+				y0 = imgH - 1
 			}
 			if x0+w > imgW {
 				w = imgW - x0
@@ -759,15 +805,26 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 				frameImg = cropped
 			}
 		}
-		trimmed[i] = Frame{Img: frameImg, At: orig.At}
+
+		rel := orig.At.Sub(origStart)
+		if speed != 1.0 {
+			rel = time.Duration(float64(rel) / speed)
+		}
+		trimmed[i] = Frame{Img: frameImg, At: origStart.Add(rel)}
 	}
 
-	var end time.Time
+	var origEnd time.Time
 	if endIdx+1 < len(s.pendingFrames) {
-		end = s.pendingFrames[endIdx+1].At
+		origEnd = s.pendingFrames[endIdx+1].At
 	} else {
-		end = s.pendingEnd
+		origEnd = s.pendingEnd
 	}
+
+	totalDur := origEnd.Sub(origStart)
+	if speed != 1.0 {
+		totalDur = time.Duration(float64(totalDur) / speed)
+	}
+	end := origStart.Add(totalDur)
 
 	if format == "" {
 		format = s.settings.Format
@@ -784,7 +841,7 @@ func (s *GifService) ConfirmReview(startIdx, endIdx int, format string, annotati
 		s.tray.SetLabel("Saving…")
 	}
 	s.broadcast()
-	go s.encodeAndSaveTarget(trimmed, end, format, existingFile, saveAsCopy, maxColors)
+	go s.encodeAndSaveTarget(trimmed, end, format, existingFile, saveAsCopy, maxColors, speed)
 	return nil
 }
 
@@ -837,10 +894,10 @@ func (s *GifService) DiscardReview() {
 }
 
 func (s *GifService) encodeAndSave(frames []Frame, end time.Time, format string) {
-	s.encodeAndSaveTarget(frames, end, format, "", false, 0)
+	s.encodeAndSaveTarget(frames, end, format, "", false, 0, 1.0)
 }
 
-func (s *GifService) encodeAndSaveTarget(frames []Frame, end time.Time, format string, existingFile string, saveAsCopy bool, maxColors int) {
+func (s *GifService) encodeAndSaveTarget(frames []Frame, end time.Time, format string, existingFile string, saveAsCopy bool, maxColors int, speed float64) {
 	s.mu.Lock()
 	fps, dir, dither := s.settings.FPS, s.settings.OutputDir, s.settings.Dither
 	if maxColors <= 0 {
@@ -850,6 +907,25 @@ func (s *GifService) encodeAndSaveTarget(frames []Frame, end time.Time, format s
 		format = s.settings.Format
 	}
 	s.mu.Unlock()
+
+	if speed <= 0 {
+		speed = 1.0
+	}
+
+	if existingFile != "" && len(frames) > 1 {
+		dur := end.Sub(frames[0].At).Seconds()
+		if dur > 0 {
+			calcFPS := int(math.Round(float64(len(frames)) / dur))
+			if calcFPS >= 1 {
+				fps = calcFPS
+			}
+		}
+	} else if speed != 1.0 {
+		fps = int(math.Round(float64(fps) * speed))
+		if fps < 1 {
+			fps = 1
+		}
+	}
 
 	if format == "" {
 		format = "gif"

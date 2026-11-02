@@ -853,7 +853,7 @@ if (reviewSaveBtn) {
     const startVal = Number($("trim-start")?.value || 0);
     const endVal = Number($("trim-end")?.value || 0);
     try {
-      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, false, null, 0);
+      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, false, null, 0, reviewSpeed);
     } catch (err) {
       toast(String(err.message || err));
     }
@@ -867,7 +867,7 @@ if (reviewSaveCopyBtn) {
     const startVal = Number($("trim-start")?.value || 0);
     const endVal = Number($("trim-end")?.value || 0);
     try {
-      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, true, null, 0);
+      await call("ConfirmReview", startVal, endVal, reviewFormat, annotations, true, null, 0, reviewSpeed);
     } catch (err) {
       toast(String(err.message || err));
     }

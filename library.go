@@ -56,7 +56,7 @@ func (s *GifService) ListRecordings() []Recording {
 			Name:    n,
 			Size:    info.Size(),
 			Created: info.ModTime().UnixMilli(),
-			URL:     "/media/" + url.PathEscape(n),
+			URL:     "/media/" + url.PathEscape(n) + "?v=" + info.ModTime().Format("150405.000"),
 			Thumb:   "/thumb/" + url.PathEscape(n) + "?v=" + info.ModTime().Format("150405.000"),
 		}
 		if f, err := os.Open(filepath.Join(dir, n)); err == nil {
@@ -221,6 +221,7 @@ func (s *GifService) middleware(next http.Handler) http.Handler {
 			default:
 				w.Header().Set("Content-Type", "image/gif")
 			}
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(w, r, p)
 		case strings.HasPrefix(r.URL.Path, "/thumb/"):
 			p, err := s.recordingPath(strings.TrimPrefix(r.URL.Path, "/thumb/"))

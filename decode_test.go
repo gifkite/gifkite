@@ -97,7 +97,7 @@ func TestExportAndPostSaveTrim(t *testing.T) {
 	}
 
 	// 2. Test trimming and ConfirmReview with saveAsCopy = true
-	err = s.ConfirmReview(1, 3, "gif", nil, true, nil, 256)
+	err = s.ConfirmReview(1, 3, "gif", nil, true, nil, 256, 1.0)
 	if err != nil {
 		t.Fatalf("ConfirmReview failed: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestCropAndColorQuantization(t *testing.T) {
 
 	// Crop to (10, 10, 40, 30) with 64 colors
 	crop := &CropRect{X: 10, Y: 10, W: 40, H: 30}
-	if err := s.ConfirmReview(0, 3, "gif", nil, true, crop, 64); err != nil {
+	if err := s.ConfirmReview(0, 3, "gif", nil, true, crop, 64, 1.0); err != nil {
 		t.Fatalf("ConfirmReview with crop failed: %v", err)
 	}
 
@@ -227,5 +227,94 @@ func TestCropAndColorQuantization(t *testing.T) {
 	bounds := decoded[0].Img.Bounds()
 	if bounds.Dx() != 40 || bounds.Dy() != 30 {
 		t.Fatalf("expected cropped dimensions 40x30, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}
+
+func TestEditorSpeedChange(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "gifcap-speed-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	now := time.Now()
+	// Create 4 frames, 100ms apart (total duration 400ms, ~10fps)
+	frames := make([]Frame, 4)
+	for i := 0; i < 4; i++ {
+		img := image.NewRGBA(image.Rect(0, 0, 40, 40))
+		for y := 0; y < 40; y++ {
+			for x := 0; x < 40; x++ {
+				img.SetRGBA(x, y, color.RGBA{R: uint8(i * 50), G: 120, B: 200, A: 255})
+			}
+		}
+		frames[i] = Frame{
+			Img: img,
+			At:  now.Add(time.Duration(i*100) * time.Millisecond),
+		}
+	}
+	end := now.Add(400 * time.Millisecond)
+
+	srcGif := filepath.Join(tmpDir, "gifkite-speed.gif")
+	if err := EncodeExport(srcGif, "gif", frames, end, 10, "none", 256, nil); err != nil {
+		t.Fatalf("EncodeExport failed: %v", err)
+	}
+
+	s := newGifService()
+	s.settings.OutputDir = tmpDir
+	s.settings.FPS = 10
+
+	if err := s.OpenInEditor("gifkite-speed.gif"); err != nil {
+		t.Fatalf("OpenInEditor failed: %v", err)
+	}
+
+	// ConfirmReview at 2.0x speed
+	if err := s.ConfirmReview(0, 3, "gif", nil, true, nil, 256, 2.0); err != nil {
+		t.Fatalf("ConfirmReview at 2x speed failed: %v", err)
+	}
+
+	// Wait for async encoding
+	deadline := time.Now().Add(5 * time.Second)
+	var speedPath string
+	for time.Now().Before(deadline) {
+		s.mu.Lock()
+		phase := s.phase
+		s.mu.Unlock()
+		if phase == phaseIdle {
+			files, err := os.ReadDir(tmpDir)
+			if err == nil {
+				for _, f := range files {
+					if strings.HasSuffix(f.Name(), ".gif") && f.Name() != "gifkite-speed.gif" {
+						info, err := f.Info()
+						if err == nil && info.Size() > 0 {
+							speedPath = filepath.Join(tmpDir, f.Name())
+							break
+						}
+					}
+				}
+			}
+			if speedPath != "" {
+				break
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if speedPath == "" {
+		t.Fatalf("speed copy file not found in %v within timeout", tmpDir)
+	}
+
+	decoded, decodedEnd, err := DecodeMediaFile(speedPath)
+	if err != nil {
+		t.Fatalf("decode speed file failed: %v", err)
+	}
+	if len(decoded) == 0 {
+		t.Fatalf("no frames decoded from speed file")
+	}
+
+	origDur := end.Sub(now)
+	speedDur := decodedEnd.Sub(decoded[0].At)
+	// Original duration was 400ms. At 2x speed, total duration should be around 200ms (160ms - 240ms).
+	t.Logf("origDur: %v, speedDur: %v", origDur, speedDur)
+	if speedDur > 260*time.Millisecond || speedDur < 150*time.Millisecond {
+		t.Fatalf("expected 2x speed duration ~200ms, got %v", speedDur)
 	}
 }

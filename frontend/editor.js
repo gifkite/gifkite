@@ -54,13 +54,15 @@ async function initReview(info) {
       fileBadge.title = info.fileName;
     }
     if (saveCopyBtn) saveCopyBtn.hidden = false;
-    const ext = (info.fileName.split(".").pop() || "gif").toLowerCase();
+    const ext = (info.fileName.split(".").pop() || info.format || "gif").toLowerCase();
     setFormat(ext);
   } else {
     if (fileBadge) fileBadge.hidden = true;
     if (saveCopyBtn) saveCopyBtn.hidden = true;
-    setFormat("gif");
+    setFormat((info.format || "gif").toLowerCase());
   }
+
+  setMaxColors(info.maxColors || 256);
 
   const fps = Math.max(1, info.fps || 15);
   if ($("meta-pill")) {
@@ -85,8 +87,12 @@ async function initReview(info) {
   undoStack = [];
   redoStack = [];
   selectedAnnotIndex = null;
+  activeCrop = null;
+  cropBoxState = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+  updateCropBoxDOM();
   updateHistoryButtons();
   setActiveTool(null);
+  setPlaybackSpeed(1);
   stopPlayback();
   updateTimeline();
   showFrame(0);
@@ -111,7 +117,8 @@ function showFrame(idx) {
   }
 
   const fps = Math.max(1, reviewInfo.fps || 15);
-  const curSec = (idx / fps).toFixed(2);
+  const effectiveFPS = fps * (playbackSpeed || 1);
+  const curSec = (idx / effectiveFPS).toFixed(2);
   const headInfo = $("playhead-info");
   if (headInfo) {
     headInfo.textContent = `Playhead: Frame ${idx + 1} (${curSec}s)`;
@@ -140,11 +147,13 @@ function updateTimeline() {
   }
 
   const fps = Math.max(1, reviewInfo.fps || 15);
-  const sSec = (sVal / fps).toFixed(1);
-  const eSec = (eVal / fps).toFixed(1);
+  const effectiveFPS = fps * (playbackSpeed || 1);
+  const sSec = (sVal / effectiveFPS).toFixed(1);
+  const eSec = (eVal / effectiveFPS).toFixed(1);
   const count = eVal - sVal + 1;
-  const durSec = (count / fps).toFixed(1);
-  const totalSec = reviewInfo.duration ? reviewInfo.duration.toFixed(1) : (reviewInfo.numFrames / fps).toFixed(1);
+  const durSec = (count / effectiveFPS).toFixed(1);
+  const baseDur = reviewInfo.duration || (reviewInfo.numFrames / fps);
+  const totalSec = (baseDur / (playbackSpeed || 1)).toFixed(1);
 
   if ($("trim-range-badge")) {
     $("trim-range-badge").textContent = `${sSec}s – ${eSec}s (${durSec}s)`;
@@ -216,6 +225,7 @@ function setPlaybackSpeed(spd) {
   document.querySelectorAll("#speed-selector button").forEach((b) => {
     b.classList.toggle("on", Number(b.dataset.spd) === spd);
   });
+  updateTimeline();
   if (isPlaying) {
     stopPlayback();
     startPlayback();
@@ -409,14 +419,16 @@ $("btn-crop-reset")?.addEventListener("click", (e) => {
   toast("Crop reset to full frame");
 });
 
+function setMaxColors(colors) {
+  maxColors = Number(colors) || 256;
+  document.querySelectorAll("#editor-palette-toggle button").forEach((b) => {
+    b.classList.toggle("on", Number(b.dataset.colors) === maxColors);
+  });
+}
+
 // Palette toggle listeners
 document.querySelectorAll("#editor-palette-toggle button").forEach((b) => {
-  b.addEventListener("click", () => {
-    maxColors = Number(b.dataset.colors) || 256;
-    document.querySelectorAll("#editor-palette-toggle button").forEach((btn) => {
-      btn.classList.toggle("on", btn === b);
-    });
-  });
+  b.addEventListener("click", () => setMaxColors(b.dataset.colors));
 });
 
 // ---- History & Annotations State ----
@@ -888,6 +900,12 @@ function setEncodingOverlay(show) {
 
 async function saveReview(saveAsCopy) {
   stopPlayback();
+  if (pendingTextPos) {
+    commitInlineText();
+  }
+  if (activeTool === "crop") {
+    activeCrop = { ...cropBoxState };
+  }
   const startVal = Number($("trim-start-slider")?.value || 0);
   const endVal = Number($("trim-end-slider")?.value || 0);
 
@@ -898,7 +916,7 @@ async function saveReview(saveAsCopy) {
   setEncodingOverlay(true);
 
   try {
-    await call("ConfirmReview", startVal, endVal, exportFormat, annotations, saveAsCopy, activeCrop, maxColors);
+    await call("ConfirmReview", startVal, endVal, exportFormat, annotations, saveAsCopy, activeCrop, maxColors, playbackSpeed);
   } catch (err) {
     setEncodingOverlay(false);
     toast(String(err.message || err));
@@ -920,6 +938,11 @@ window.addEventListener("keydown", (e) => {
   }
 
   const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+  if (isCmdOrCtrl && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    $("btn-save")?.click();
+    return;
+  }
   if (isCmdOrCtrl && e.key.toLowerCase() === "z") {
     e.preventDefault();
     if (e.shiftKey) {
